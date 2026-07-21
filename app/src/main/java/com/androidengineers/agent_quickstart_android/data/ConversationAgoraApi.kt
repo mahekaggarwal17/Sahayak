@@ -3,6 +3,7 @@ package com.androidengineers.agent_quickstart_android.data
 import com.androidengineers.agent_quickstart_android.config.QuickstartConfig
 import com.androidengineers.agent_quickstart_android.model.AgentInviteResult
 import com.androidengineers.agent_quickstart_android.model.AgoraTokenBundle
+import com.androidengineers.agent_quickstart_android.model.ConversationMode
 import com.androidengineers.agent_quickstart_android.model.RenewalTokens
 import com.google.gson.annotations.SerializedName
 import java.io.IOException
@@ -22,6 +23,8 @@ import retrofit2.http.Path
 class ConversationAgoraApi(
     private val appId: String = QuickstartConfig.agoraAppId,
     private val tokenFactory: AgoraLocalTokenFactory = AgoraLocalTokenFactory(),
+    private val sarvamApiKey: String = QuickstartConfig.sarvamApiKey,
+    private val sarvamSubscriptionKey: String = QuickstartConfig.sarvamSubscriptionKey,
     baseUrl: String = QuickstartConfig.convoAiBaseUrl,
 ) {
     private val service: AgoraConversationService = Retrofit.Builder()
@@ -55,20 +58,22 @@ class ConversationAgoraApi(
 
     suspend fun inviteAgent(
         channelName: String,
+        requesterRtcUid: String,
+        conversationMode: ConversationMode,
     ): AgentInviteResult {
         val agentToken = tokenFactory.buildAgentRestToken(channelName)
+        val providerConfig = buildProviderConfig(conversationMode)
         val body = service.inviteAgent(
             appId = appId,
             authorization = authorizationHeader(agentToken),
             request = JoinAgentRequest(
                 name = generateAgentName(),
-                preset = DEFAULT_PRESET,
+                preset = providerConfig.preset,
                 properties = JoinAgentProperties(
                     channel = channelName,
                     token = agentToken,
                     agentRtcUid = QuickstartConfig.agentUid.toString(),
-                    // Subscribe to all remote users for demo robustness.
-                    remoteRtcUids = listOf("*"),
+                    remoteRtcUids = listOf(requesterRtcUid),
                     enableStringUid = false,
                     idleTimeout = 30,
                     geofence = JoinGeofence(
@@ -77,10 +82,7 @@ class ConversationAgoraApi(
                     advancedFeatures = JoinAdvancedFeatures(
                         enableRtm = true,
                     ),
-                    asr = JoinAsr(
-                        vendor = "deepgram",
-                        params = JoinAsrParams(language = "en"),
-                    ),
+                    asr = providerConfig.asr,
                     llm = JoinLlm(
                         systemMessages = listOf(
                             JoinSystemMessage(
@@ -97,14 +99,7 @@ class ConversationAgoraApi(
                             topP = 0.95,
                         ),
                     ),
-                    tts = JoinTts(
-                        vendor = "minimax",
-                        params = JoinTtsParams(
-                            voiceSetting = JoinVoiceSetting(
-                                voiceId = "English_captivating_female1",
-                            )
-                        ),
-                    ),
+                    tts = providerConfig.tts,
                     turnDetection = JoinTurnDetection(
                         mode = "default",
                         config = JoinTurnDetectionConfig(
@@ -130,8 +125,10 @@ class ConversationAgoraApi(
                         mode = "start_of_speech",
                     ),
                     parameters = JoinParameters(
+                        audioScenario = "chorus",
                         dataChannel = "rtm",
                         enableErrorMessage = true,
+                        enableMetrics = true,
                     ),
                 ),
             )
@@ -173,6 +170,53 @@ class ConversationAgoraApi(
 
     private fun generateAgentName(): String {
         return "android-rest-agent-${System.currentTimeMillis()}-${(1000..9999).random()}"
+    }
+
+    private fun buildProviderConfig(conversationMode: ConversationMode): JoinProviderConfig {
+        return when (conversationMode) {
+            ConversationMode.DEFAULT_AGORA -> JoinProviderConfig(
+                preset = DEFAULT_PRESET,
+                asr = JoinAsr(
+                    vendor = "deepgram",
+                    params = JoinAsrParams(language = "en"),
+                ),
+                tts = JoinTts(
+                    vendor = "minimax",
+                    params = JoinTtsParams(
+                        voiceSetting = JoinVoiceSetting(
+                            voiceId = DEFAULT_TTS_VOICE_ID,
+                        )
+                    ),
+                ),
+            )
+
+            ConversationMode.SARVAM -> {
+                if (sarvamApiKey.isBlank() || sarvamSubscriptionKey.isBlank()) {
+                    throw IOException(
+                        "SARVAM_API_KEY and SARVAM_SUBSCRIPTION_KEY are required for Sarvam mode."
+                    )
+                }
+                JoinProviderConfig(
+                    preset = null,
+                    asr = JoinAsr(
+                        vendor = "sarvam",
+                        language = SARVAM_INPUT_LANGUAGE,
+                        params = JoinAsrParams(
+                            apiKey = sarvamApiKey,
+                            language = SARVAM_TARGET_LANGUAGE,
+                        ),
+                    ),
+                    tts = JoinTts(
+                        vendor = "sarvam",
+                        params = JoinTtsParams(
+                            apiSubscriptionKey = sarvamSubscriptionKey,
+                            speaker = SARVAM_TTS_SPEAKER,
+                            targetLanguageCode = SARVAM_TARGET_LANGUAGE,
+                        ),
+                    ),
+                )
+            }
+        }
     }
 
     private fun mapGeofenceArea(area: String): String {
@@ -256,8 +300,14 @@ class ConversationAgoraApi(
 
     private data class JoinAgentRequest(
         @SerializedName("name") val name: String,
-        @SerializedName("preset") val preset: String,
+        @SerializedName("preset") val preset: String?,
         @SerializedName("properties") val properties: JoinAgentProperties,
+    )
+
+    private data class JoinProviderConfig(
+        val preset: String?,
+        val asr: JoinAsr,
+        val tts: JoinTts,
     )
 
     private data class JoinAgentProperties(
@@ -287,10 +337,12 @@ class ConversationAgoraApi(
 
     private data class JoinAsr(
         @SerializedName("vendor") val vendor: String,
+        @SerializedName("language") val language: String? = null,
         @SerializedName("params") val params: JoinAsrParams,
     )
 
     private data class JoinAsrParams(
+        @SerializedName("api_key") val apiKey: String? = null,
         @SerializedName("language") val language: String,
     )
 
@@ -319,7 +371,10 @@ class ConversationAgoraApi(
     )
 
     private data class JoinTtsParams(
-        @SerializedName("voice_setting") val voiceSetting: JoinVoiceSetting,
+        @SerializedName("voice_setting") val voiceSetting: JoinVoiceSetting? = null,
+        @SerializedName("api_subscription_key") val apiSubscriptionKey: String? = null,
+        @SerializedName("speaker") val speaker: String? = null,
+        @SerializedName("target_language_code") val targetLanguageCode: String? = null,
     )
 
     private data class JoinVoiceSetting(
@@ -363,8 +418,10 @@ class ConversationAgoraApi(
     )
 
     private data class JoinParameters(
+        @SerializedName("audio_scenario") val audioScenario: String,
         @SerializedName("data_channel") val dataChannel: String,
         @SerializedName("enable_error_message") val enableErrorMessage: Boolean,
+        @SerializedName("enable_metrics") val enableMetrics: Boolean,
     )
 
     private data class JoinAgentResponse(
@@ -379,6 +436,10 @@ class ConversationAgoraApi(
         const val NETWORK_TIMEOUT_SECONDS = 15L
         const val DEFAULT_PRESET =
             "deepgram_nova_3,openai_gpt_4o_mini,minimax_speech_2_6_turbo"
+        const val DEFAULT_TTS_VOICE_ID = "English_captivating_female1"
+        const val SARVAM_INPUT_LANGUAGE = "en-US"
+        const val SARVAM_TARGET_LANGUAGE = "hi-IN"
+        const val SARVAM_TTS_SPEAKER = "anushka"
         const val DEFAULT_GREETING =
             "Hi there!"
         const val DEFAULT_FAILURE_MESSAGE = "Please wait a moment."

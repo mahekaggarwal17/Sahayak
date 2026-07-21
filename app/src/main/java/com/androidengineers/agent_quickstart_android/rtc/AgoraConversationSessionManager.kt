@@ -196,7 +196,7 @@ class AgoraConversationSessionManager(
             mAppId = QuickstartConfig.agoraAppId
             mEventHandler = rtcEventHandler
             mChannelProfile = Constants.CHANNEL_PROFILE_COMMUNICATION
-            mAudioScenario = Constants.AUDIO_SCENARIO_CHATROOM
+            mAudioScenario = Constants.AUDIO_SCENARIO_CHORUS
         }
 
         val engine = RtcEngine.create(config)
@@ -216,7 +216,7 @@ class AgoraConversationSessionManager(
             operation = "setAudioProfile",
             result = engine.setAudioProfile(
                 Constants.AUDIO_PROFILE_SPEECH_STANDARD,
-                Constants.AUDIO_SCENARIO_CHATROOM,
+                Constants.AUDIO_SCENARIO_CHORUS,
             ),
         )
         audioSessionManager.configureRtcEngine(engine)
@@ -348,20 +348,18 @@ class AgoraConversationSessionManager(
 
         when (mappedState) {
             AgentConversationState.SPEAKING -> {
-                audioSessionManager.setMicrophoneEnabled(false)
-                Log.i(TAG, "Auto-muted mic while agent speaking")
+                currentAgentTurnId = turnId
+                audioSessionManager.setMicrophoneEnabled(micRequestedEnabled)
+                Log.i(TAG, "Agent speaking with microphone kept ${if (micRequestedEnabled) "enabled" else "muted"} for barge-in")
             }
 
             AgentConversationState.LISTENING,
             AgentConversationState.IDLE,
             AgentConversationState.SILENT -> {
-                scope.launch {
-                    kotlinx.coroutines.delay(800)
-                    if (_snapshot.value.agentState != AgentConversationState.SPEAKING) {
-                        audioSessionManager.setMicrophoneEnabled(micRequestedEnabled)
-                        Log.i(TAG, "Restored mic after 800ms agent tail cooldown")
-                    }
-                }
+                currentAgentTurnId = null
+                interruptRequestedTurnId = null
+                audioSessionManager.setMicrophoneEnabled(micRequestedEnabled)
+                Log.i(TAG, "Agent ready; microphone restored to requested state")
             }
 
             else -> Unit
@@ -440,18 +438,17 @@ class AgoraConversationSessionManager(
                 val text = payload.optString("text")
                 val agentSpeaking = _snapshot.value.agentState == AgentConversationState.SPEAKING
 
-                if (agentSpeaking) {
-                    Log.i(TAG, "Rejected user.transcription during agent speaking: possible AI echo text=$text")
-                    return
-                }
-
                 if (audioSessionManager.shouldAcceptUserTranscript(text)) {
                     val isFinal = payload.takeIf { payload.has("final") }?.optBoolean("final") != false
 
                     audioSessionManager.onUserTranscriptAccepted(
-                        interruptingAgent = false,
+                        interruptingAgent = agentSpeaking,
                         isFinal = isFinal,
                     )
+
+                    if (agentSpeaking) {
+                        requestAgentInterruptFromUserSpeech(text)
+                    }
 
                     updateTranscript(payload)
                 } else {
@@ -460,7 +457,6 @@ class AgoraConversationSessionManager(
             }
 
             "assistant.transcription" -> {
-                audioSessionManager.setMicrophoneEnabled(false)
                 audioSessionManager.onAssistantTranscript(payload.optString("text"))
                 updateTranscript(payload)
             }

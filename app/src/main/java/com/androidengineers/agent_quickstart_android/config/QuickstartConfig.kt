@@ -7,6 +7,8 @@ object QuickstartConfig {
     val agoraAppCertificate: String = BuildConfig.AGORA_APP_CERTIFICATE.trim()
     val convoAiBaseUrl: String = BuildConfig.AGORA_CONVOAI_BASE_URL.trim().trimEnd('/')
     val agoraArea: String = BuildConfig.AGORA_AREA.trim()
+    val sarvamApiKey: String = BuildConfig.SARVAM_API_KEY.trim()
+    val sarvamSubscriptionKey: String = BuildConfig.SARVAM_SUBSCRIPTION_KEY.trim()
     val agentUid: Int = BuildConfig.AGENT_UID
 
     fun missingRequiredValues(): List<String> {
@@ -22,6 +24,9 @@ object QuickstartConfig {
 
     val isConfigured: Boolean
         get() = missingRequiredValues().isEmpty()
+
+    val isSarvamConfigured: Boolean
+        get() = sarvamApiKey.isNotBlank() && sarvamSubscriptionKey.isNotBlank()
 
     fun startupHelpMessage(): String? {
         val missing = missingRequiredValues()

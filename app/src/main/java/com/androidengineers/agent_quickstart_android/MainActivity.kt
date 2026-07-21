@@ -9,6 +9,7 @@ import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.viewModels
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.rememberUpdatedState
@@ -27,8 +28,14 @@ class MainActivity : ComponentActivity() {
         enableEdgeToEdge()
 
         setContent {
-            AgentquickstartandroidTheme {
-                val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+            val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+            val systemDarkTheme = isSystemInDarkTheme()
+
+            LaunchedEffect(systemDarkTheme) {
+                viewModel.initializeTheme(systemDarkTheme)
+            }
+
+            AgentquickstartandroidTheme(darkTheme = uiState.isDarkTheme) {
                 val context = LocalContext.current
                 val currentViewModel by rememberUpdatedState(viewModel)
                 val permissionLauncher = rememberLauncherForActivityResult(
@@ -64,6 +71,8 @@ class MainActivity : ComponentActivity() {
                     },
                     onEndConversation = viewModel::endConversation,
                     onToggleMicrophone = viewModel::toggleMicrophone,
+                    onToggleTheme = viewModel::toggleTheme,
+                    onConversationModeSelected = viewModel::selectConversationMode,
                     onDismissMessages = viewModel::clearTransientMessages,
                 )
             }

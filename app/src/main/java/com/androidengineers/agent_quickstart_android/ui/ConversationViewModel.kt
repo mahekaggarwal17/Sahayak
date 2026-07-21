@@ -5,9 +5,9 @@ import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.androidengineers.agent_quickstart_android.config.QuickstartConfig
 import com.androidengineers.agent_quickstart_android.data.ConversationRepository
+import com.androidengineers.agent_quickstart_android.model.ConversationMode
 import com.androidengineers.agent_quickstart_android.model.ConversationUiState
 import com.androidengineers.agent_quickstart_android.rtc.AgoraConversationSessionManager
-import kotlinx.coroutines.async
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -25,6 +25,7 @@ class ConversationViewModel(
     val uiState: StateFlow<ConversationUiState> = _uiState.asStateFlow()
 
     private var activeAgentId: String? = null
+    private var themeInitialized: Boolean = false
 
     init {
         viewModelScope.launch {
@@ -38,6 +39,32 @@ class ConversationViewModel(
 
     fun updateMicrophonePermission(granted: Boolean) {
         _uiState.update { it.copy(microphonePermissionGranted = granted) }
+    }
+
+    fun initializeTheme(systemDarkTheme: Boolean) {
+        if (themeInitialized) {
+            return
+        }
+        themeInitialized = true
+        _uiState.update { it.copy(isDarkTheme = systemDarkTheme) }
+    }
+
+    fun toggleTheme() {
+        themeInitialized = true
+        _uiState.update { it.copy(isDarkTheme = !it.isDarkTheme) }
+    }
+
+    fun selectConversationMode(mode: ConversationMode) {
+        if (_uiState.value.inConversation || _uiState.value.isStarting) {
+            return
+        }
+        _uiState.update {
+            it.copy(
+                conversationMode = mode,
+                errorMessage = null,
+                warningMessage = null,
+            )
+        }
     }
 
     fun startConversation() {
@@ -63,6 +90,15 @@ class ConversationViewModel(
             }
             return
         }
+        if (currentState.conversationMode == ConversationMode.SARVAM && !QuickstartConfig.isSarvamConfigured) {
+            _uiState.update {
+                it.copy(
+                    errorMessage = "Add SARVAM_API_KEY and SARVAM_SUBSCRIPTION_KEY to local.properties before starting Sarvam mode.",
+                    warningMessage = null,
+                )
+            }
+            return
+        }
 
         viewModelScope.launch {
             _uiState.update {
@@ -75,12 +111,6 @@ class ConversationViewModel(
 
             runCatching {
                 val bootstrap = repository.requestSessionBootstrap()
-                val inviteJob = async {
-                    runCatching {
-                        repository.inviteAgent(channelName = bootstrap.channel)
-                    }.getOrNull()
-                }
-
                 sessionManager.connect(bootstrap) { channel, rtcUid, rtmUserId ->
                     repository.renewTokens(
                         channel = channel,
@@ -89,7 +119,17 @@ class ConversationViewModel(
                     )
                 }
 
-                val inviteResult = inviteJob.await()
+                val requesterRtcUid = sessionManager.snapshot.value.localRtcUid
+                    .takeIf { it > 0 }
+                    ?.toString()
+                    ?: bootstrap.uid
+                val inviteResult = runCatching {
+                    repository.inviteAgent(
+                        channelName = bootstrap.channel,
+                        requesterRtcUid = requesterRtcUid,
+                        conversationMode = _uiState.value.conversationMode,
+                    )
+                }.getOrNull()
                 activeAgentId = inviteResult?.agentId
                 sessionManager.setActiveAgentId(activeAgentId)
 
@@ -115,6 +155,7 @@ class ConversationViewModel(
                 _uiState.value = ConversationUiStateMapper.freshUiState(
                     permissionGranted = _uiState.value.microphonePermissionGranted,
                     errorMessage = error.message ?: "Unable to start the Agora conversation.",
+                    isDarkTheme = _uiState.value.isDarkTheme,
                 )
             }
         }
@@ -146,6 +187,7 @@ class ConversationViewModel(
             _uiState.value = ConversationUiStateMapper.freshUiState(
                 permissionGranted = _uiState.value.microphonePermissionGranted,
                 warningMessage = warning,
+                isDarkTheme = _uiState.value.isDarkTheme,
             )
         }
     }

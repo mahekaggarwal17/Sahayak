@@ -13,8 +13,11 @@ internal object ConversationUiStateMapper {
         permissionGranted: Boolean = false,
         warningMessage: String? = null,
         errorMessage: String? = null,
+        isDarkTheme: Boolean = false,
     ): ConversationUiState {
         return ConversationUiState(
+            isDarkTheme = isDarkTheme,
+            sarvamConfigured = QuickstartConfig.isSarvamConfigured,
             isConfigured = QuickstartConfig.isConfigured,
             configMessage = QuickstartConfig.startupHelpMessage(),
             microphonePermissionGranted = permissionGranted,

@@ -65,6 +65,16 @@ android {
             "AGORA_AREA",
             quote(localOrEnv("AGORA_AREA", default = "US"))
         )
+        buildConfigField(
+            "String",
+            "SARVAM_API_KEY",
+            quote(localOrEnv("SARVAM_API_KEY", "NEXT_SARVAM_API_KEY"))
+        )
+        buildConfigField(
+            "String",
+            "SARVAM_SUBSCRIPTION_KEY",
+            quote(localOrEnv("SARVAM_SUBSCRIPTION_KEY", "NEXT_SARVAM_SUBSCRIPTION_KEY"))
+        )
         buildConfigField("int", "AGENT_UID", localOrEnv("AGORA_AGENT_UID", default = "123456"))
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"

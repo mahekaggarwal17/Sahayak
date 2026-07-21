@@ -1,6 +1,7 @@
 package com.androidengineers.agent_quickstart_android.data
 
 import com.androidengineers.agent_quickstart_android.config.QuickstartConfig
+import com.androidengineers.agent_quickstart_android.model.ConversationMode
 import okhttp3.mockwebserver.MockResponse
 import okhttp3.mockwebserver.MockWebServer
 import org.json.JSONObject
@@ -59,7 +60,11 @@ class ConversationAgoraApiTest {
             baseUrl = server.url("/").toString(),
         )
 
-        val result = api.inviteAgent("room-a")
+        val result = api.inviteAgent(
+            channelName = "room-a",
+            requesterRtcUid = "2468",
+            conversationMode = ConversationMode.DEFAULT_AGORA,
+        )
         val request = server.takeRequest()
         val body = JSONObject(request.body.readUtf8())
         val properties = body.getJSONObject("properties")
@@ -72,7 +77,7 @@ class ConversationAgoraApiTest {
         assertEquals("deepgram_nova_3,openai_gpt_4o_mini,minimax_speech_2_6_turbo", body.getString("preset"))
         assertEquals("room-a", properties.getString("channel"))
         assertEquals(QuickstartConfig.agentUid.toString(), properties.getString("agent_rtc_uid"))
-        assertEquals("*", properties.getJSONArray("remote_rtc_uids").getString(0))
+        assertEquals("2468", properties.getJSONArray("remote_rtc_uids").getString(0))
         assertFalse(properties.getBoolean("enable_string_uid"))
         assertEquals(30, properties.getInt("idle_timeout"))
         assertEquals(expectedGeofenceArea(QuickstartConfig.agoraArea), properties.getJSONObject("geofence").getString("area"))
@@ -89,8 +94,66 @@ class ConversationAgoraApiTest {
         assertEquals("vad", properties.getJSONObject("turn_detection").getJSONObject("config").getJSONObject("end_of_speech").getString("mode"))
         assertTrue(properties.getJSONObject("interruption").getBoolean("enable"))
         assertEquals("start_of_speech", properties.getJSONObject("interruption").getString("mode"))
-        assertEquals("rtm", properties.getJSONObject("parameters").getString("data_channel"))
-        assertTrue(properties.getJSONObject("parameters").getBoolean("enable_error_message"))
+        val parameters = properties.getJSONObject("parameters")
+        assertEquals("chorus", parameters.getString("audio_scenario"))
+        assertEquals("rtm", parameters.getString("data_channel"))
+        assertTrue(parameters.getBoolean("enable_error_message"))
+        assertTrue(parameters.getBoolean("enable_metrics"))
+    }
+
+    @Test
+    fun inviteAgentCanPostSarvamProviderPayload() = runBlocking {
+        assumeTrue(QuickstartConfig.isConfigured)
+        server.enqueue(
+            MockResponse()
+                .setResponseCode(200)
+                .setBody(
+                    """
+                    {
+                      "agent_id": "agent-sarvam",
+                      "create_ts": 1714310400,
+                      "status": "STARTING"
+                    }
+                    """.trimIndent()
+                )
+        )
+
+        val api = ConversationAgoraApi(
+            appId = QuickstartConfig.agoraAppId,
+            tokenFactory = AgoraLocalTokenFactory(
+                appId = QuickstartConfig.agoraAppId,
+                appCertificate = QuickstartConfig.agoraAppCertificate,
+                agentUid = 1357,
+            ),
+            sarvamApiKey = "sarvam-asr-key",
+            sarvamSubscriptionKey = "sarvam-tts-key",
+            baseUrl = server.url("/").toString(),
+        )
+
+        val result = api.inviteAgent(
+            channelName = "room-s",
+            requesterRtcUid = "2468",
+            conversationMode = ConversationMode.SARVAM,
+        )
+        val request = server.takeRequest()
+        val body = JSONObject(request.body.readUtf8())
+        val properties = body.getJSONObject("properties")
+        val asr = properties.getJSONObject("asr")
+        val asrParams = asr.getJSONObject("params")
+        val tts = properties.getJSONObject("tts")
+        val ttsParams = tts.getJSONObject("params")
+
+        assertEquals("agent-sarvam", result.agentId)
+        assertFalse(body.has("preset"))
+        assertEquals("sarvam", asr.getString("vendor"))
+        assertEquals("en-US", asr.getString("language"))
+        assertEquals("sarvam-asr-key", asrParams.getString("api_key"))
+        assertEquals("hi-IN", asrParams.getString("language"))
+        assertEquals("sarvam", tts.getString("vendor"))
+        assertEquals("sarvam-tts-key", ttsParams.getString("api_subscription_key"))
+        assertEquals("anushka", ttsParams.getString("speaker"))
+        assertEquals("hi-IN", ttsParams.getString("target_language_code"))
+        assertEquals("2468", properties.getJSONArray("remote_rtc_uids").getString(0))
     }
 
     @Test

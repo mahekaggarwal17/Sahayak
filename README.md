@@ -6,7 +6,7 @@ It gives you a single Kotlin + Jetpack Compose app that:
 
 - joins an Agora RTC channel
 - starts an Agora Conversational AI agent
-- listens for transcript and agent state updates
+- listens for transcript, agent state, and pipeline metrics over RTM
 - lets the user talk, mute, and end the session
 - keeps the whole demo in one Android project so it is easy to understand and customize
 
@@ -17,7 +17,7 @@ Agora is a good fit when you want low-latency realtime voice with an AI agent be
 With Agora Conversational AI, you get:
 
 - realtime RTC audio transport
-- RTM-based agent state and transcript events
+- RTM-based agent state, transcript, and metrics events
 - agent lifecycle control through REST
 - interruption and turn-taking support
 - a clean path from prototype to production
@@ -47,9 +47,9 @@ For production:
 
 1. The app reads `AGORA_APP_ID`, `AGORA_APP_CERTIFICATE`, and related config from `local.properties`.
 2. It generates RTC, RTM, and agent REST tokens locally for demo convenience.
-3. It calls Agora REST to start the Conversational AI agent.
-4. The Android app joins the RTC channel and subscribes to RTM.
-5. The agent sends transcripts and state updates back to the app.
+3. It calls Agora REST to start the Conversational AI agent and scopes the agent to the generated requester RTC UID.
+4. The Android app joins the RTC channel with the chorus audio scenario and subscribes to RTM.
+5. The agent sends transcripts, state updates, errors, and metrics back to the app.
 6. The user can speak, mute, interrupt, and end the session from the UI.
 
 ## Architecture At A Glance
@@ -63,7 +63,7 @@ flowchart LR
     API --> REST["Agora Conversational AI REST"]
     VM --> RTC["AgoraConversationSessionManager"]
     RTC --> AUDIO["AudioSessionManager"]
-    RTC --> RTM["RTM transcript + agent state"]
+    RTC --> RTM["RTM transcript + agent state + metrics"]
     REST --> AGENT["Agora Agent Runtime"]
     AGENT --> RTC
     AGENT --> RTM
@@ -89,12 +89,12 @@ sequenceDiagram
 
     U->>A: Tap Start voice session
     A->>A: Read config and create local tokens
-    A->>R: POST /join
+    A->>R: POST /join with requester RTC UID
     R-->>A: agent_id
     R->>G: Start agent
     A->>C: Join RTC and publish mic
     A->>M: Login and subscribe
-    G-->>M: Transcript and agent state events
+    G-->>M: Transcript, state, error, and metrics events
     U->>A: Speak, mute, interrupt
     A->>R: POST /interrupt
     U->>A: End session
@@ -152,7 +152,11 @@ Optional values:
 ```properties
 AGORA_CONVOAI_BASE_URL=https://api.agora.io/api/conversational-ai-agent/v2/projects
 AGORA_AREA=US
+SARVAM_API_KEY=your_sarvam_api_key
+SARVAM_SUBSCRIPTION_KEY=your_sarvam_subscription_key
 ```
+
+`SARVAM_API_KEY` and `SARVAM_SUBSCRIPTION_KEY` are only needed when you choose **Sarvam** in the app's conversation engine selector.
 
 ### 4. Build the app
 
@@ -253,6 +257,7 @@ This is the easiest way to understand where the code lives:
 
 ### Tests
 
+- `app/src/test/java/com/androidengineers/agent_quickstart_android/data/ConversationAgoraApiTest.kt`
 - `app/src/test/java/com/androidengineers/agent_quickstart_android/TranscriptAssemblerTest.kt`
 - `app/src/test/java/com/androidengineers/agent_quickstart_android/audio/TurnManagerTest.kt`
 - `app/src/test/java/com/androidengineers/agent_quickstart_android/audio/SelfSpeechFilterTest.kt`
@@ -305,16 +310,27 @@ If you are building a product around a voice assistant, this gives you a practic
 
 ## Default Agent Setup
 
-The demo starts the agent with:
+The demo includes a conversation engine selector before the session starts.
+
+Default Agora starts the agent with:
 
 - `deepgram_nova_3`
 - `openai_gpt_4o_mini`
 - `minimax_speech_2_6_turbo`
 
+Sarvam mode switches ASR and TTS to Sarvam while keeping the default OpenAI LLM:
+
+- ASR vendor: `sarvam`
+- LLM model: `gpt-4o-mini`
+- TTS vendor: `sarvam`
+
 It also enables:
 
 - RTM event delivery
 - RTM data channel transcripts
+- RTM pipeline metrics
+- agent subscription scoped to the generated requester RTC UID
+- chorus audio scenario for the agent and local RTC engine
 - start-of-speech interruption
 - VAD-based end-of-speech detection
 
@@ -333,11 +349,16 @@ Optional in `local.properties`:
   defaults to `https://api.agora.io/api/conversational-ai-agent/v2/projects`
 - `AGORA_AREA`
   defaults to `US`
+- `SARVAM_API_KEY`
+  required for Sarvam mode
+- `SARVAM_SUBSCRIPTION_KEY`
+  required for Sarvam mode
 
 Notes:
 
 - `AGORA_APP_ID` also supports the legacy key `agora.app.id`
 - `AGORA_AREA` maps to the ConvoAI REST `geofence.area` value
+- `NEXT_SARVAM_API_KEY` and `NEXT_SARVAM_SUBSCRIPTION_KEY` are also accepted for parity with the Bhaasha Next.js sample
 
 ## Build And Test
 
@@ -377,6 +398,14 @@ Check:
 - the project supports RTC and RTM
 - the App Certificate value is complete and correct
 
+### Sarvam mode is disabled
+
+Check:
+
+- `SARVAM_API_KEY` is present in `local.properties`
+- `SARVAM_SUBSCRIPTION_KEY` is present in `local.properties`
+- rebuild the app after changing `local.properties`
+
 ### RTM login or transcript flow fails
 
 Check:
@@ -384,6 +413,22 @@ Check:
 - the token was generated for the same RTM user ID the app logs in with
 - the channel name is the same for REST, RTC, and RTM
 - the project has RTM available
+
+### Agent joins but does not respond to speech
+
+Check:
+
+- the generated requester RTC UID is passed in `remote_rtc_uids`
+- `AGORA_AGENT_UID` does not collide with the local user UID
+- the app joined RTC before you started speaking
+
+### Metrics do not appear
+
+Check:
+
+- the join payload includes `parameters.enable_metrics=true`
+- RTM subscription succeeds for the same channel name
+- your UI is wired to display metrics if you add a metrics panel
 
 ### Microphone does not start
 

@@ -15,9 +15,11 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawing
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -26,7 +28,9 @@ import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.DarkMode
 import androidx.compose.material.icons.outlined.ErrorOutline
+import androidx.compose.material.icons.outlined.LightMode
 import androidx.compose.material.icons.outlined.Link
 import androidx.compose.material.icons.outlined.Mic
 import androidx.compose.material.icons.outlined.MicOff
@@ -36,6 +40,9 @@ import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SegmentedButton
+import androidx.compose.material3.SegmentedButtonDefaults
+import androidx.compose.material3.SingleChoiceSegmentedButtonRow
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -53,6 +60,7 @@ import androidx.compose.ui.unit.dp
 import java.util.Locale
 import com.androidengineers.agent_quickstart_android.audio.TurnState
 import com.androidengineers.agent_quickstart_android.model.AgentVisualState
+import com.androidengineers.agent_quickstart_android.model.ConversationMode
 import com.androidengineers.agent_quickstart_android.model.ConversationUiState
 import com.androidengineers.agent_quickstart_android.model.SessionIssue
 import com.androidengineers.agent_quickstart_android.model.TranscriptSpeaker
@@ -95,6 +103,8 @@ fun ConversationScreen(
     onStartRequested: () -> Unit,
     onEndConversation: () -> Unit,
     onToggleMicrophone: () -> Unit,
+    onToggleTheme: () -> Unit,
+    onConversationModeSelected: (ConversationMode) -> Unit,
     onDismissMessages: () -> Unit,
 ) {
     VoiceAiAppScreen(
@@ -102,6 +112,8 @@ fun ConversationScreen(
         onStartRequested = onStartRequested,
         onEndConversation = onEndConversation,
         onToggleMicrophone = onToggleMicrophone,
+        onToggleTheme = onToggleTheme,
+        onConversationModeSelected = onConversationModeSelected,
         onDismissMessages = onDismissMessages,
     )
 }
@@ -112,12 +124,19 @@ fun VoiceAiAppScreen(
     onStartRequested: () -> Unit,
     onEndConversation: () -> Unit,
     onToggleMicrophone: () -> Unit,
+    onToggleTheme: () -> Unit,
+    onConversationModeSelected: (ConversationMode) -> Unit,
     onDismissMessages: () -> Unit,
 ) {
     Scaffold(
         containerColor = MaterialTheme.colorScheme.background,
         contentWindowInsets = WindowInsets.safeDrawing,
-        topBar = { VoiceAiTopBar() },
+        topBar = {
+            VoiceAiTopBar(
+                isDarkTheme = uiState.isDarkTheme,
+                onToggleTheme = onToggleTheme,
+            )
+        },
         bottomBar = {
             if (uiState.inConversation) {
                 BottomCallControls(
@@ -164,6 +183,7 @@ fun VoiceAiAppScreen(
                         PreSessionScreen(
                             uiState = uiState,
                             onStartRequested = onStartRequested,
+                            onConversationModeSelected = onConversationModeSelected,
                             onDismissMessages = onDismissMessages,
                         )
                     }
@@ -174,8 +194,12 @@ fun VoiceAiAppScreen(
 }
 
 @Composable
-private fun VoiceAiTopBar() {
+private fun VoiceAiTopBar(
+    isDarkTheme: Boolean,
+    onToggleTheme: () -> Unit,
+) {
     Surface(
+        modifier = Modifier.statusBarsPadding(),
         color = MaterialTheme.colorScheme.background.copy(alpha = 0.96f),
         tonalElevation = 0.dp,
     ) {
@@ -185,11 +209,23 @@ private fun VoiceAiTopBar() {
                 .padding(horizontal = VoiceAiLayout.ScreenPadding, vertical = 18.dp),
             verticalArrangement = Arrangement.spacedBy(10.dp),
         ) {
-            StatusChip(
-                text = "console",
-                highlighted = true,
-                accentColor = MaterialTheme.colorScheme.primary,
-            )
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                StatusChip(
+                    text = "console",
+                    highlighted = true,
+                    accentColor = MaterialTheme.colorScheme.primary,
+                )
+                AgentIconControlButton(
+                    icon = if (isDarkTheme) Icons.Outlined.LightMode else Icons.Outlined.DarkMode,
+                    contentDescription = if (isDarkTheme) "Switch to light theme" else "Switch to dark theme",
+                    active = isDarkTheme,
+                    onClick = onToggleTheme,
+                )
+            }
             Text(
                 text = "Voice AI for Android",
                 style = MaterialTheme.typography.headlineMedium,
@@ -208,6 +244,7 @@ private fun VoiceAiTopBar() {
 private fun PreSessionScreen(
     uiState: ConversationUiState,
     onStartRequested: () -> Unit,
+    onConversationModeSelected: (ConversationMode) -> Unit,
     onDismissMessages: () -> Unit,
 ) {
     LazyColumn(
@@ -232,6 +269,7 @@ private fun PreSessionScreen(
             SessionSetupCard(
                 uiState = uiState,
                 onStartRequested = onStartRequested,
+                onConversationModeSelected = onConversationModeSelected,
             )
         }
     }
@@ -241,6 +279,7 @@ private fun PreSessionScreen(
 private fun SessionSetupCard(
     uiState: ConversationUiState,
     onStartRequested: () -> Unit,
+    onConversationModeSelected: (ConversationMode) -> Unit,
 ) {
     AgentCard(
         title = "Ready to start",
@@ -250,6 +289,12 @@ private fun SessionSetupCard(
             icon = Icons.Outlined.Link,
             label = "Agora REST direct mode",
             value = "This demo generates RTC, RTM, and agent tokens locally, then calls Agora REST join, interrupt, and leave directly from Android. Demo-only: your App Certificate is packaged into the app.",
+        )
+
+        ConversationModeSelector(
+            selectedMode = uiState.conversationMode,
+            sarvamConfigured = uiState.sarvamConfigured,
+            onModeSelected = onConversationModeSelected,
         )
 
         FlowRow(
@@ -267,6 +312,10 @@ private fun SessionSetupCard(
 
         ResponsiveInfoGrid(
             items = listOf(
+                InfoItemModel(
+                    label = "Conversation engine",
+                    value = uiState.conversationMode.label,
+                ),
                 InfoItemModel(
                     label = "Configuration",
                     value = if (uiState.isConfigured) "Ready to start" else "local.properties needed",
@@ -294,9 +343,58 @@ private fun SessionSetupCard(
         AgentButton(
             text = if (uiState.isStarting) "Starting voice session..." else "Start voice session",
             modifier = Modifier.fillMaxWidth(),
-            enabled = uiState.isConfigured && !uiState.isStarting,
+            enabled = uiState.isConfigured &&
+                !uiState.isStarting &&
+                (uiState.conversationMode != ConversationMode.SARVAM || uiState.sarvamConfigured),
             onClick = onStartRequested,
         )
+    }
+}
+
+@Composable
+private fun ConversationModeSelector(
+    selectedMode: ConversationMode,
+    sarvamConfigured: Boolean,
+    onModeSelected: (ConversationMode) -> Unit,
+) {
+    Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+        Text(
+            text = "Conversation engine",
+            style = MaterialTheme.typography.titleSmall,
+            color = MaterialTheme.colorScheme.onSurface,
+            fontWeight = FontWeight.SemiBold,
+        )
+        SingleChoiceSegmentedButtonRow(modifier = Modifier.fillMaxWidth()) {
+            ConversationMode.entries.forEachIndexed { index, mode ->
+                SegmentedButton(
+                    selected = selectedMode == mode,
+                    onClick = { onModeSelected(mode) },
+                    shape = SegmentedButtonDefaults.itemShape(
+                        index = index,
+                        count = ConversationMode.entries.size,
+                    ),
+                    label = {
+                        Text(
+                            text = mode.label,
+                            maxLines = 1,
+                            overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
+                        )
+                    },
+                )
+            }
+        }
+        Text(
+            text = selectedMode.summary,
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+        if (selectedMode == ConversationMode.SARVAM && !sarvamConfigured) {
+            Text(
+                text = "Add SARVAM_API_KEY and SARVAM_SUBSCRIPTION_KEY to local.properties to enable Sarvam.",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.error,
+            )
+        }
     }
 }
 
@@ -318,37 +416,11 @@ fun ConnectedSessionScreen(
         )
 
         item {
-            BoxWithConstraints(modifier = Modifier.fillMaxWidth()) {
-                val wideLayout = maxWidth >= 840.dp
-                if (wideLayout) {
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(VoiceAiLayout.CardSpacing),
-                    ) {
-                        LiveSessionCard(
-                            modifier = Modifier.weight(1.15f),
-                            uiState = uiState,
-                        )
-                        AgentPresenceCard(
-                            modifier = Modifier.weight(0.85f),
-                            visualState = uiState.agentVisualState,
-                            label = uiState.agentStateLabel,
-                            turnState = uiState.turnState,
-                        )
-                    }
-                } else {
-                    Column(verticalArrangement = Arrangement.spacedBy(VoiceAiLayout.CardSpacing)) {
-                        LiveSessionCard(
-                            uiState = uiState,
-                        )
-                        AgentPresenceCard(
-                            visualState = uiState.agentVisualState,
-                            label = uiState.agentStateLabel,
-                            turnState = uiState.turnState,
-                        )
-                    }
-                }
-            }
+            AgentPresenceCard(
+                visualState = uiState.agentVisualState,
+                label = uiState.agentStateLabel,
+                turnState = uiState.turnState,
+            )
         }
 
         item {
@@ -362,6 +434,10 @@ fun ConnectedSessionScreen(
             item {
                 IssuesPanel(issues = uiState.issues)
             }
+        }
+
+        item {
+            LiveSessionCard(uiState = uiState)
         }
     }
 }
@@ -693,6 +769,7 @@ fun BottomCallControls(
     onEndConversation: () -> Unit,
 ) {
     Surface(
+        modifier = Modifier.navigationBarsPadding(),
         tonalElevation = 6.dp,
         shadowElevation = 12.dp,
         color = MaterialTheme.colorScheme.background.copy(alpha = 0.96f),
@@ -932,6 +1009,8 @@ private fun PreSessionPreview() {
             onStartRequested = {},
             onEndConversation = {},
             onToggleMicrophone = {},
+            onToggleTheme = {},
+            onConversationModeSelected = {},
             onDismissMessages = {},
         )
     }
@@ -946,12 +1025,14 @@ private fun PreSessionPreview() {
 )
 @Composable
 private fun ConnectedSessionPreview() {
-    AgentquickstartandroidTheme {
+    AgentquickstartandroidTheme(darkTheme = true) {
         ConversationScreen(
             uiState = previewConnectedState(),
             onStartRequested = {},
             onEndConversation = {},
             onToggleMicrophone = {},
+            onToggleTheme = {},
+            onConversationModeSelected = {},
             onDismissMessages = {},
         )
     }
