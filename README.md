@@ -16,114 +16,6 @@ It gives you a single Kotlin + Jetpack Compose app that:
 - An Android device or emulator with microphone support
 - [Agora CLI](https://github.com/AgoraIO/cli)
 
-## Why Use Agora For Voice AI
-
-Agora is a good fit when you want low-latency realtime voice with an AI agent because it gives you the media and session plumbing instead of forcing you to build it all yourself.
-
-With Agora Conversational AI, you get:
-
-- realtime RTC audio transport
-- RTM-based agent state, transcript, and metrics events
-- agent lifecycle control through REST
-- interruption and turn-taking support
-- a clean path from prototype to production
-
-That means your app can focus on product logic and UI, while Agora handles the realtime voice infrastructure and agent session behavior.
-
-## What This Template Is
-
-This repo is intentionally a **direct REST demo**.
-
-It is useful when you want to:
-
-- learn how Agora Conversational AI works end to end
-- ship a quick prototype without a backend
-- build a reusable Android template for your team
-- understand the minimum code needed for a voice AI app
-
-It is **not production-safe as-is** because the App Certificate is packaged into the Android app and used for local token generation.
-
-For production:
-
-- move token generation to your backend
-- move REST `join`, `interrupt`, and `leave` calls to your backend
-- keep the Android app as a thin UI client
-
-## How It Works
-
-1. The app reads `AGORA_APP_ID`, `AGORA_APP_CERTIFICATE`, and related config from `local.properties`.
-2. It generates RTC, RTM, and agent REST tokens locally for demo convenience.
-3. It calls Agora REST to start the Conversational AI agent and scopes the agent to the generated requester RTC UID.
-4. The Android app joins the RTC channel with the chorus audio scenario and subscribes to RTM.
-5. The agent sends transcripts, state updates, errors, and metrics back to the app.
-6. The user can speak, mute, interrupt, and end the session from the UI.
-
-## Architecture At A Glance
-
-```mermaid
-flowchart LR
-    U["User"] --> UI["Compose UI"]
-    UI --> VM["ConversationViewModel"]
-    VM --> API["ConversationAgoraApi"]
-    API --> TOKENS["AgoraLocalTokenFactory"]
-    API --> REST["Agora Conversational AI REST"]
-    VM --> RTC["AgoraConversationSessionManager"]
-    RTC --> AUDIO["AudioSessionManager"]
-    RTC --> RTM["RTM transcript + agent state + metrics"]
-    REST --> AGENT["Agora Agent Runtime"]
-    AGENT --> RTC
-    AGENT --> RTM
-```
-
-This is the core template shape:
-
-- the UI owns user actions
-- the ViewModel owns screen state
-- the API owns REST calls
-- the session manager owns RTC/RTM and audio behavior
-
-## Session Lifecycle
-
-```mermaid
-sequenceDiagram
-    participant U as User
-    participant A as Android App
-    participant R as Agora REST
-    participant C as Agora RTC
-    participant M as Agora RTM
-    participant G as Agent Runtime
-
-    U->>A: Tap Start voice session
-    A->>A: Read config and create local tokens
-    A->>R: POST /join with requester RTC UID
-    R-->>A: agent_id
-    R->>G: Start agent
-    A->>C: Join RTC and publish mic
-    A->>M: Login and subscribe
-    G-->>M: Transcript, state, error, and metrics events
-    U->>A: Speak, mute, interrupt
-    A->>R: POST /interrupt
-    U->>A: End session
-    A->>R: POST /leave
-    A->>C: Leave RTC
-    A->>M: Logout
-```
-
-## Session States
-
-```mermaid
-stateDiagram-v2
-    [*] --> Idle
-    Idle --> Starting: Start session
-    Starting --> InSession: RTC + RTM connected
-    Starting --> Error: join/token failure
-    InSession --> Ending: End session
-    InSession --> Interrupted: Agent interrupted
-    Interrupted --> InSession: Agent resumes
-    Ending --> Idle: cleanup complete
-    Error --> Idle: user retries
-```
-
 ## Quick Start
 
 The recommended path is to let the Agora CLI clone the quickstart, bind an Agora project, and write Android credentials to `local.properties`.
@@ -459,6 +351,115 @@ Assemble debug APK:
 ```bash
 JAVA_HOME="/Applications/Android Studio.app/Contents/jbr/Contents/Home" ./gradlew :app:assembleDebug
 ```
+
+## Why Use Agora For Voice AI
+
+Agora is a good fit when you want low-latency realtime voice with an AI agent because it gives you the media and session plumbing instead of forcing you to build it all yourself.
+
+With Agora Conversational AI, you get:
+
+- realtime RTC audio transport
+- RTM-based agent state, transcript, and metrics events
+- agent lifecycle control through REST
+- interruption and turn-taking support
+- a clean path from prototype to production
+
+That means your app can focus on product logic and UI, while Agora handles the realtime voice infrastructure and agent session behavior.
+
+## What This Template Is
+
+This repo is intentionally a **direct REST demo**.
+
+It is useful when you want to:
+
+- learn how Agora Conversational AI works end to end
+- ship a quick prototype without a backend
+- build a reusable Android template for your team
+- understand the minimum code needed for a voice AI app
+
+It is **not production-safe as-is** because the App Certificate is packaged into the Android app and used for local token generation.
+
+For production:
+
+- move token generation to your backend
+- move REST `join`, `interrupt`, and `leave` calls to your backend
+- keep the Android app as a thin UI client
+
+## How It Works
+
+1. The app reads `AGORA_APP_ID`, `AGORA_APP_CERTIFICATE`, and related config from `local.properties`.
+2. It generates RTC, RTM, and agent REST tokens locally for demo convenience.
+3. It calls Agora REST to start the Conversational AI agent and scopes the agent to the generated requester RTC UID.
+4. The Android app joins the RTC channel with the chorus audio scenario and subscribes to RTM.
+5. The agent sends transcripts, state updates, errors, and metrics back to the app.
+6. The user can speak, mute, interrupt, and end the session from the UI.
+
+## Architecture At A Glance
+
+```mermaid
+flowchart LR
+    U["User"] --> UI["Compose UI"]
+    UI --> VM["ConversationViewModel"]
+    VM --> API["ConversationAgoraApi"]
+    API --> TOKENS["AgoraLocalTokenFactory"]
+    API --> REST["Agora Conversational AI REST"]
+    VM --> RTC["AgoraConversationSessionManager"]
+    RTC --> AUDIO["AudioSessionManager"]
+    RTC --> RTM["RTM transcript + agent state + metrics"]
+    REST --> AGENT["Agora Agent Runtime"]
+    AGENT --> RTC
+    AGENT --> RTM
+```
+
+This is the core template shape:
+
+- the UI owns user actions
+- the ViewModel owns screen state
+- the API owns REST calls
+- the session manager owns RTC/RTM and audio behavior
+
+## Session Lifecycle
+
+```mermaid
+sequenceDiagram
+    participant U as User
+    participant A as Android App
+    participant R as Agora REST
+    participant C as Agora RTC
+    participant M as Agora RTM
+    participant G as Agent Runtime
+
+    U->>A: Tap Start voice session
+    A->>A: Read config and create local tokens
+    A->>R: POST /join with requester RTC UID
+    R-->>A: agent_id
+    R->>G: Start agent
+    A->>C: Join RTC and publish mic
+    A->>M: Login and subscribe
+    G-->>M: Transcript, state, error, and metrics events
+    U->>A: Speak, mute, interrupt
+    A->>R: POST /interrupt
+    U->>A: End session
+    A->>R: POST /leave
+    A->>C: Leave RTC
+    A->>M: Logout
+```
+
+## Session States
+
+```mermaid
+stateDiagram-v2
+    [*] --> Idle
+    Idle --> Starting: Start session
+    Starting --> InSession: RTC + RTM connected
+    Starting --> Error: join/token failure
+    InSession --> Ending: End session
+    InSession --> Interrupted: Agent interrupted
+    Interrupted --> InSession: Agent resumes
+    Ending --> Idle: cleanup complete
+    Error --> Idle: user retries
+```
+
 
 ## Troubleshooting
 
