@@ -17,7 +17,6 @@ internal object ConversationUiStateMapper {
     ): ConversationUiState {
         return ConversationUiState(
             isDarkTheme = isDarkTheme,
-            sarvamConfigured = QuickstartConfig.isSarvamConfigured,
             isConfigured = QuickstartConfig.isConfigured,
             configMessage = QuickstartConfig.startupHelpMessage(),
             microphonePermissionGranted = permissionGranted,

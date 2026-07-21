@@ -1,7 +1,6 @@
 package com.androidengineers.agent_quickstart_android.data
 
 import com.androidengineers.agent_quickstart_android.config.QuickstartConfig
-import com.androidengineers.agent_quickstart_android.model.ConversationMode
 import okhttp3.mockwebserver.MockResponse
 import okhttp3.mockwebserver.MockWebServer
 import org.json.JSONObject
@@ -63,7 +62,6 @@ class ConversationAgoraApiTest {
         val result = api.inviteAgent(
             channelName = "room-a",
             requesterRtcUid = "2468",
-            conversationMode = ConversationMode.DEFAULT_AGORA,
         )
         val request = server.takeRequest()
         val body = JSONObject(request.body.readUtf8())
@@ -99,61 +97,6 @@ class ConversationAgoraApiTest {
         assertEquals("rtm", parameters.getString("data_channel"))
         assertTrue(parameters.getBoolean("enable_error_message"))
         assertTrue(parameters.getBoolean("enable_metrics"))
-    }
-
-    @Test
-    fun inviteAgentCanPostSarvamProviderPayload() = runBlocking {
-        assumeTrue(QuickstartConfig.isConfigured)
-        server.enqueue(
-            MockResponse()
-                .setResponseCode(200)
-                .setBody(
-                    """
-                    {
-                      "agent_id": "agent-sarvam",
-                      "create_ts": 1714310400,
-                      "status": "STARTING"
-                    }
-                    """.trimIndent()
-                )
-        )
-
-        val api = ConversationAgoraApi(
-            appId = QuickstartConfig.agoraAppId,
-            tokenFactory = AgoraLocalTokenFactory(
-                appId = QuickstartConfig.agoraAppId,
-                appCertificate = QuickstartConfig.agoraAppCertificate,
-                agentUid = 1357,
-            ),
-            sarvamApiKey = "sarvam-asr-key",
-            sarvamSubscriptionKey = "sarvam-tts-key",
-            baseUrl = server.url("/").toString(),
-        )
-
-        val result = api.inviteAgent(
-            channelName = "room-s",
-            requesterRtcUid = "2468",
-            conversationMode = ConversationMode.SARVAM,
-        )
-        val request = server.takeRequest()
-        val body = JSONObject(request.body.readUtf8())
-        val properties = body.getJSONObject("properties")
-        val asr = properties.getJSONObject("asr")
-        val asrParams = asr.getJSONObject("params")
-        val tts = properties.getJSONObject("tts")
-        val ttsParams = tts.getJSONObject("params")
-
-        assertEquals("agent-sarvam", result.agentId)
-        assertFalse(body.has("preset"))
-        assertEquals("sarvam", asr.getString("vendor"))
-        assertEquals("en-US", asr.getString("language"))
-        assertEquals("sarvam-asr-key", asrParams.getString("api_key"))
-        assertEquals("hi-IN", asrParams.getString("language"))
-        assertEquals("sarvam", tts.getString("vendor"))
-        assertEquals("sarvam-tts-key", ttsParams.getString("api_subscription_key"))
-        assertEquals("anushka", ttsParams.getString("speaker"))
-        assertEquals("hi-IN", ttsParams.getString("target_language_code"))
-        assertEquals("2468", properties.getJSONArray("remote_rtc_uids").getString(0))
     }
 
     @Test

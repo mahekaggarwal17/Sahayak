@@ -3,7 +3,6 @@ package com.androidengineers.agent_quickstart_android.data
 import com.androidengineers.agent_quickstart_android.config.QuickstartConfig
 import com.androidengineers.agent_quickstart_android.model.AgentInviteResult
 import com.androidengineers.agent_quickstart_android.model.AgoraTokenBundle
-import com.androidengineers.agent_quickstart_android.model.ConversationMode
 import com.androidengineers.agent_quickstart_android.model.RenewalTokens
 import com.google.gson.annotations.SerializedName
 import java.io.IOException
@@ -23,8 +22,6 @@ import retrofit2.http.Path
 class ConversationAgoraApi(
     private val appId: String = QuickstartConfig.agoraAppId,
     private val tokenFactory: AgoraLocalTokenFactory = AgoraLocalTokenFactory(),
-    private val sarvamApiKey: String = QuickstartConfig.sarvamApiKey,
-    private val sarvamSubscriptionKey: String = QuickstartConfig.sarvamSubscriptionKey,
     baseUrl: String = QuickstartConfig.convoAiBaseUrl,
 ) {
     private val service: AgoraConversationService = Retrofit.Builder()
@@ -59,10 +56,9 @@ class ConversationAgoraApi(
     suspend fun inviteAgent(
         channelName: String,
         requesterRtcUid: String,
-        conversationMode: ConversationMode,
     ): AgentInviteResult {
         val agentToken = tokenFactory.buildAgentRestToken(channelName)
-        val providerConfig = buildProviderConfig(conversationMode)
+        val providerConfig = buildProviderConfig()
         val body = service.inviteAgent(
             appId = appId,
             authorization = authorizationHeader(agentToken),
@@ -172,51 +168,22 @@ class ConversationAgoraApi(
         return "android-rest-agent-${System.currentTimeMillis()}-${(1000..9999).random()}"
     }
 
-    private fun buildProviderConfig(conversationMode: ConversationMode): JoinProviderConfig {
-        return when (conversationMode) {
-            ConversationMode.DEFAULT_AGORA -> JoinProviderConfig(
-                preset = DEFAULT_PRESET,
-                asr = JoinAsr(
-                    vendor = "deepgram",
-                    params = JoinAsrParams(language = "en"),
-                ),
-                tts = JoinTts(
-                    vendor = "minimax",
-                    params = JoinTtsParams(
-                        voiceSetting = JoinVoiceSetting(
-                            voiceId = DEFAULT_TTS_VOICE_ID,
-                        )
-                    ),
-                ),
-            )
-
-            ConversationMode.SARVAM -> {
-                if (sarvamApiKey.isBlank() || sarvamSubscriptionKey.isBlank()) {
-                    throw IOException(
-                        "SARVAM_API_KEY and SARVAM_SUBSCRIPTION_KEY are required for Sarvam mode."
+    private fun buildProviderConfig(): JoinProviderConfig {
+        return JoinProviderConfig(
+            preset = DEFAULT_PRESET,
+            asr = JoinAsr(
+                vendor = "deepgram",
+                params = JoinAsrParams(language = "en"),
+            ),
+            tts = JoinTts(
+                vendor = "minimax",
+                params = JoinTtsParams(
+                    voiceSetting = JoinVoiceSetting(
+                        voiceId = DEFAULT_TTS_VOICE_ID,
                     )
-                }
-                JoinProviderConfig(
-                    preset = null,
-                    asr = JoinAsr(
-                        vendor = "sarvam",
-                        language = SARVAM_INPUT_LANGUAGE,
-                        params = JoinAsrParams(
-                            apiKey = sarvamApiKey,
-                            language = SARVAM_TARGET_LANGUAGE,
-                        ),
-                    ),
-                    tts = JoinTts(
-                        vendor = "sarvam",
-                        params = JoinTtsParams(
-                            apiSubscriptionKey = sarvamSubscriptionKey,
-                            speaker = SARVAM_TTS_SPEAKER,
-                            targetLanguageCode = SARVAM_TARGET_LANGUAGE,
-                        ),
-                    ),
-                )
-            }
-        }
+                ),
+            ),
+        )
     }
 
     private fun mapGeofenceArea(area: String): String {
@@ -437,9 +404,6 @@ class ConversationAgoraApi(
         const val DEFAULT_PRESET =
             "deepgram_nova_3,openai_gpt_4o_mini,minimax_speech_2_6_turbo"
         const val DEFAULT_TTS_VOICE_ID = "English_captivating_female1"
-        const val SARVAM_INPUT_LANGUAGE = "en-US"
-        const val SARVAM_TARGET_LANGUAGE = "hi-IN"
-        const val SARVAM_TTS_SPEAKER = "anushka"
         const val DEFAULT_GREETING =
             "Hi there!"
         const val DEFAULT_FAILURE_MESSAGE = "Please wait a moment."

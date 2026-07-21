@@ -40,9 +40,6 @@ import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.SegmentedButton
-import androidx.compose.material3.SegmentedButtonDefaults
-import androidx.compose.material3.SingleChoiceSegmentedButtonRow
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -60,7 +57,6 @@ import androidx.compose.ui.unit.dp
 import java.util.Locale
 import com.androidengineers.agent_quickstart_android.audio.TurnState
 import com.androidengineers.agent_quickstart_android.model.AgentVisualState
-import com.androidengineers.agent_quickstart_android.model.ConversationMode
 import com.androidengineers.agent_quickstart_android.model.ConversationUiState
 import com.androidengineers.agent_quickstart_android.model.SessionIssue
 import com.androidengineers.agent_quickstart_android.model.TranscriptSpeaker
@@ -104,7 +100,6 @@ fun ConversationScreen(
     onEndConversation: () -> Unit,
     onToggleMicrophone: () -> Unit,
     onToggleTheme: () -> Unit,
-    onConversationModeSelected: (ConversationMode) -> Unit,
     onDismissMessages: () -> Unit,
 ) {
     VoiceAiAppScreen(
@@ -113,7 +108,6 @@ fun ConversationScreen(
         onEndConversation = onEndConversation,
         onToggleMicrophone = onToggleMicrophone,
         onToggleTheme = onToggleTheme,
-        onConversationModeSelected = onConversationModeSelected,
         onDismissMessages = onDismissMessages,
     )
 }
@@ -125,7 +119,6 @@ fun VoiceAiAppScreen(
     onEndConversation: () -> Unit,
     onToggleMicrophone: () -> Unit,
     onToggleTheme: () -> Unit,
-    onConversationModeSelected: (ConversationMode) -> Unit,
     onDismissMessages: () -> Unit,
 ) {
     Scaffold(
@@ -183,7 +176,6 @@ fun VoiceAiAppScreen(
                         PreSessionScreen(
                             uiState = uiState,
                             onStartRequested = onStartRequested,
-                            onConversationModeSelected = onConversationModeSelected,
                             onDismissMessages = onDismissMessages,
                         )
                     }
@@ -244,7 +236,6 @@ private fun VoiceAiTopBar(
 private fun PreSessionScreen(
     uiState: ConversationUiState,
     onStartRequested: () -> Unit,
-    onConversationModeSelected: (ConversationMode) -> Unit,
     onDismissMessages: () -> Unit,
 ) {
     LazyColumn(
@@ -269,7 +260,6 @@ private fun PreSessionScreen(
             SessionSetupCard(
                 uiState = uiState,
                 onStartRequested = onStartRequested,
-                onConversationModeSelected = onConversationModeSelected,
             )
         }
     }
@@ -279,7 +269,6 @@ private fun PreSessionScreen(
 private fun SessionSetupCard(
     uiState: ConversationUiState,
     onStartRequested: () -> Unit,
-    onConversationModeSelected: (ConversationMode) -> Unit,
 ) {
     AgentCard(
         title = "Ready to start",
@@ -291,10 +280,10 @@ private fun SessionSetupCard(
             value = "This demo generates RTC, RTM, and agent tokens locally, then calls Agora REST join, interrupt, and leave directly from Android. Demo-only: your App Certificate is packaged into the app.",
         )
 
-        ConversationModeSelector(
-            selectedMode = uiState.conversationMode,
-            sarvamConfigured = uiState.sarvamConfigured,
-            onModeSelected = onConversationModeSelected,
+        LabeledIconText(
+            icon = Icons.Outlined.Link,
+            label = "Default Agora-managed engine",
+            value = "Uses Agora-managed Deepgram ASR, OpenAI LLM, and MiniMax TTS for the voice agent.",
         )
 
         FlowRow(
@@ -314,7 +303,7 @@ private fun SessionSetupCard(
             items = listOf(
                 InfoItemModel(
                     label = "Conversation engine",
-                    value = uiState.conversationMode.label,
+                    value = "Default Agora",
                 ),
                 InfoItemModel(
                     label = "Configuration",
@@ -343,58 +332,9 @@ private fun SessionSetupCard(
         AgentButton(
             text = if (uiState.isStarting) "Starting voice session..." else "Start voice session",
             modifier = Modifier.fillMaxWidth(),
-            enabled = uiState.isConfigured &&
-                !uiState.isStarting &&
-                (uiState.conversationMode != ConversationMode.SARVAM || uiState.sarvamConfigured),
+            enabled = uiState.isConfigured && !uiState.isStarting,
             onClick = onStartRequested,
         )
-    }
-}
-
-@Composable
-private fun ConversationModeSelector(
-    selectedMode: ConversationMode,
-    sarvamConfigured: Boolean,
-    onModeSelected: (ConversationMode) -> Unit,
-) {
-    Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-        Text(
-            text = "Conversation engine",
-            style = MaterialTheme.typography.titleSmall,
-            color = MaterialTheme.colorScheme.onSurface,
-            fontWeight = FontWeight.SemiBold,
-        )
-        SingleChoiceSegmentedButtonRow(modifier = Modifier.fillMaxWidth()) {
-            ConversationMode.entries.forEachIndexed { index, mode ->
-                SegmentedButton(
-                    selected = selectedMode == mode,
-                    onClick = { onModeSelected(mode) },
-                    shape = SegmentedButtonDefaults.itemShape(
-                        index = index,
-                        count = ConversationMode.entries.size,
-                    ),
-                    label = {
-                        Text(
-                            text = mode.label,
-                            maxLines = 1,
-                            overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
-                        )
-                    },
-                )
-            }
-        }
-        Text(
-            text = selectedMode.summary,
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-        )
-        if (selectedMode == ConversationMode.SARVAM && !sarvamConfigured) {
-            Text(
-                text = "Add SARVAM_API_KEY and SARVAM_SUBSCRIPTION_KEY to local.properties to enable Sarvam.",
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.error,
-            )
-        }
     }
 }
 
@@ -1010,7 +950,6 @@ private fun PreSessionPreview() {
             onEndConversation = {},
             onToggleMicrophone = {},
             onToggleTheme = {},
-            onConversationModeSelected = {},
             onDismissMessages = {},
         )
     }
@@ -1032,7 +971,6 @@ private fun ConnectedSessionPreview() {
             onEndConversation = {},
             onToggleMicrophone = {},
             onToggleTheme = {},
-            onConversationModeSelected = {},
             onDismissMessages = {},
         )
     }

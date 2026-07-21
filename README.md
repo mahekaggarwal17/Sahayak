@@ -10,6 +10,12 @@ It gives you a single Kotlin + Jetpack Compose app that:
 - lets the user talk, mute, and end the session
 - keeps the whole demo in one Android project so it is easy to understand and customize
 
+## Prerequisites
+
+- Android Studio with JDK 17+
+- An Android device or emulator with microphone support
+- [Agora CLI](https://github.com/AgoraIO/cli)
+
 ## Why Use Agora For Voice AI
 
 Agora is a good fit when you want low-latency realtime voice with an AI agent because it gives you the media and session plumbing instead of forcing you to build it all yourself.
@@ -120,7 +126,79 @@ stateDiagram-v2
 
 ## Quick Start
 
-### 1. Create an Agora project
+The recommended path is to let the Agora CLI clone the quickstart, bind an Agora project, and write Android credentials to `local.properties`.
+
+### 1. Install the Agora CLI and sign in
+
+Skip this step if `agora` is already on your `PATH`.
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/AgoraIO/cli/main/install.sh | sh
+agora login
+```
+
+### 2. Scaffold and bind the Android quickstart
+
+Replace `my-android-demo` with your app folder name:
+
+```bash
+agora init my-android-demo --template android
+cd my-android-demo
+```
+
+`agora init` clones this starter, selects or creates an Agora project, writes `.agora/project.json`, and writes Agora credentials to root `local.properties`.
+
+### 3. Build the app
+
+```bash
+JAVA_HOME="/Applications/Android Studio.app/Contents/jbr/Contents/Home" ./gradlew :app:assembleDebug
+```
+
+### 4. Run it
+
+Open the project in Android Studio, or run it from the command line, then launch it on a device or emulator.
+
+### 5. Start a session
+
+Tap **Start voice session**, allow microphone permission, speak to the agent, and watch transcripts appear in realtime.
+
+### 6. Check readiness
+
+If the agent does not join or transcripts do not appear, run:
+
+```bash
+agora project doctor --deep
+```
+
+This checks credentials, project binding, feature enablement, network reachability, and quickstart env consistency.
+
+### Working from a clone of this repository
+
+Use this path if you already cloned **this** repo, for example to contribute or fork:
+
+```bash
+git clone https://github.com/AgoraIO-Conversational-AI/agent-quickstart-android.git
+cd agent-quickstart-android
+agora login
+agora quickstart env write . --template android --project <your-project>
+agora project doctor --deep
+JAVA_HOME="/Applications/Android Studio.app/Contents/jbr/Contents/Home" ./gradlew :app:assembleDebug
+```
+
+The env command writes:
+
+```properties
+AGORA_APP_ID=...
+AGORA_APP_CERTIFICATE=...
+```
+
+to root `local.properties`.
+
+### Manual setup
+
+Use this only if you are not using the Agora CLI.
+
+#### 1. Create an Agora project
 
 Create or choose an Agora project with Conversational AI enabled.
 
@@ -130,14 +208,14 @@ You need:
 - `App Certificate`
 - access to RTC and RTM for the project
 
-### 2. Clone this repo
+#### 2. Clone this repo
 
 ```bash
 git clone <your-fork-or-repo-url>
 cd agent-quickstart-android
 ```
 
-### 3. Add your Agora config
+#### 3. Add your Agora config
 
 Put the following values in `local.properties` at the repo root:
 
@@ -152,29 +230,44 @@ Optional values:
 ```properties
 AGORA_CONVOAI_BASE_URL=https://api.agora.io/api/conversational-ai-agent/v2/projects
 AGORA_AREA=US
-SARVAM_API_KEY=your_sarvam_api_key
-SARVAM_SUBSCRIPTION_KEY=your_sarvam_subscription_key
 ```
 
-`SARVAM_API_KEY` and `SARVAM_SUBSCRIPTION_KEY` are only needed when you choose **Sarvam** in the app's conversation engine selector.
-
-### 4. Build the app
+#### 4. Build the app
 
 ```bash
 JAVA_HOME="/Applications/Android Studio.app/Contents/jbr/Contents/Home" ./gradlew :app:assembleDebug
 ```
 
-### 5. Run it
+#### 5. Run it
 
 Open the project in Android Studio, or run it from the command line, then launch it on a device or emulator.
 
-### 6. Start a session
+#### 6. Start a session
 
 Tap **Start voice session**, allow microphone permission, speak to the agent, and watch transcripts appear in realtime.
 
-### 7. End the session
+#### 7. End the session
 
 Use the end-session control to stop the conversation cleanly.
+
+## Agora Skills For Agents
+
+If you are using an AI coding agent, ask it to use Agora skills before changing Agora integration code. The CLI includes a built-in workflow catalog:
+
+```bash
+agora skills list
+agora skills search voice
+agora skills show <skill-id>
+```
+
+For automation, prefer JSON output:
+
+```bash
+agora skills list --json
+agora introspect --json
+```
+
+Use the skill guidance together with this repo's source files so agent-generated changes stay aligned with Agora's current quickstart, env, RTC, RTM, and Conversational AI patterns.
 
 ## What A New User Should Read First
 
@@ -310,19 +403,11 @@ If you are building a product around a voice assistant, this gives you a practic
 
 ## Default Agent Setup
 
-The demo includes a conversation engine selector before the session starts.
-
-Default Agora starts the agent with:
+The demo starts the agent with the default Agora-managed stack:
 
 - `deepgram_nova_3`
 - `openai_gpt_4o_mini`
 - `minimax_speech_2_6_turbo`
-
-Sarvam mode switches ASR and TTS to Sarvam while keeping the default OpenAI LLM:
-
-- ASR vendor: `sarvam`
-- LLM model: `gpt-4o-mini`
-- TTS vendor: `sarvam`
 
 It also enables:
 
@@ -349,16 +434,11 @@ Optional in `local.properties`:
   defaults to `https://api.agora.io/api/conversational-ai-agent/v2/projects`
 - `AGORA_AREA`
   defaults to `US`
-- `SARVAM_API_KEY`
-  required for Sarvam mode
-- `SARVAM_SUBSCRIPTION_KEY`
-  required for Sarvam mode
 
 Notes:
 
 - `AGORA_APP_ID` also supports the legacy key `agora.app.id`
 - `AGORA_AREA` maps to the ConvoAI REST `geofence.area` value
-- `NEXT_SARVAM_API_KEY` and `NEXT_SARVAM_SUBSCRIPTION_KEY` are also accepted for parity with the Bhaasha Next.js sample
 
 ## Build And Test
 
@@ -397,14 +477,6 @@ Check:
 - `AGORA_APP_ID` and `AGORA_APP_CERTIFICATE` belong to the same project
 - the project supports RTC and RTM
 - the App Certificate value is complete and correct
-
-### Sarvam mode is disabled
-
-Check:
-
-- `SARVAM_API_KEY` is present in `local.properties`
-- `SARVAM_SUBSCRIPTION_KEY` is present in `local.properties`
-- rebuild the app after changing `local.properties`
 
 ### RTM login or transcript flow fails
 

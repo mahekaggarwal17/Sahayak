@@ -26,6 +26,8 @@ import io.agora.rtm.RtmConstants
 import io.agora.rtm.RtmEventListener
 import io.agora.rtm.SubscribeOptions
 import java.io.IOException
+import java.util.Locale
+import java.util.concurrent.CancellationException
 import kotlin.coroutines.resume
 import kotlin.coroutines.resumeWithException
 import kotlin.math.abs
@@ -33,6 +35,7 @@ import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.TimeoutCancellationException
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -43,14 +46,15 @@ import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
+import kotlinx.coroutines.withTimeout
 import org.json.JSONObject
-import java.util.Locale
 
 class AgoraConversationSessionManager(
     context: Context,
 ) {
     private val appContext = context.applicationContext
-    private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
+    private val sessionJob = SupervisorJob()
+    private val scope = CoroutineScope(sessionJob + Dispatchers.Main.immediate)
     private val renewMutex = Mutex()
     private val transcriptAssembler = TranscriptAssembler()
     private val repository = ConversationRepository()
@@ -174,6 +178,7 @@ class AgoraConversationSessionManager(
 
     fun release() {
         disconnect(resetSnapshot = true)
+        sessionJob.cancel()
     }
 
     fun setMicrophoneEnabled(enabled: Boolean) {
@@ -286,7 +291,24 @@ class AgoraConversationSessionManager(
             )
         }
 
-        deferred.await()
+        try {
+            withTimeout(RTC_JOIN_TIMEOUT_MS) {
+                deferred.await()
+            }
+        } catch (error: TimeoutCancellationException) {
+            if (joinDeferred == deferred) {
+                joinDeferred = null
+            }
+            throw IOException(
+                "RTC join timed out after ${RTC_JOIN_TIMEOUT_MS / 1000} seconds.",
+                error,
+            )
+        } catch (error: CancellationException) {
+            if (joinDeferred == deferred) {
+                joinDeferred = null
+            }
+            throw error
+        }
     }
 
     private fun updateSnapshot(transform: (SessionSnapshot) -> SessionSnapshot) {
@@ -698,6 +720,7 @@ class AgoraConversationSessionManager(
 
     companion object {
         private const val TAG = "AgoraConversationSession"
+        private const val RTC_JOIN_TIMEOUT_MS = 20_000L
     }
 
     private fun checkRtcResult(

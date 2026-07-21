@@ -32,20 +32,6 @@ enum class AgentVisualState {
     DISCONNECTED,
 }
 
-enum class ConversationMode(
-    val label: String,
-    val summary: String,
-) {
-    DEFAULT_AGORA(
-        label = "Default Agora",
-        summary = "Agora-managed Deepgram ASR, OpenAI LLM, and MiniMax TTS.",
-    ),
-    SARVAM(
-        label = "Sarvam",
-        summary = "Sarvam ASR and TTS with the default OpenAI LLM.",
-    ),
-}
-
 data class TranscriptTurn(
     val key: String,
     val turnId: Long,
@@ -109,8 +95,6 @@ data class SessionSnapshot(
 
 data class ConversationUiState(
     val isDarkTheme: Boolean = false,
-    val conversationMode: ConversationMode = ConversationMode.DEFAULT_AGORA,
-    val sarvamConfigured: Boolean = false,
     val isConfigured: Boolean = false,
     val configMessage: String? = null,
     val microphonePermissionGranted: Boolean = false,

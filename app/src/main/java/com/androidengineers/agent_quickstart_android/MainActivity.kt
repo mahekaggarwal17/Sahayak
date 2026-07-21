@@ -72,7 +72,6 @@ class MainActivity : ComponentActivity() {
                     onEndConversation = viewModel::endConversation,
                     onToggleMicrophone = viewModel::toggleMicrophone,
                     onToggleTheme = viewModel::toggleTheme,
-                    onConversationModeSelected = viewModel::selectConversationMode,
                     onDismissMessages = viewModel::clearTransientMessages,
                 )
             }

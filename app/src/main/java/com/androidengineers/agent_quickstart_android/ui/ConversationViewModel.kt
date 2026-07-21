@@ -5,7 +5,6 @@ import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.androidengineers.agent_quickstart_android.config.QuickstartConfig
 import com.androidengineers.agent_quickstart_android.data.ConversationRepository
-import com.androidengineers.agent_quickstart_android.model.ConversationMode
 import com.androidengineers.agent_quickstart_android.model.ConversationUiState
 import com.androidengineers.agent_quickstart_android.rtc.AgoraConversationSessionManager
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -54,19 +53,6 @@ class ConversationViewModel(
         _uiState.update { it.copy(isDarkTheme = !it.isDarkTheme) }
     }
 
-    fun selectConversationMode(mode: ConversationMode) {
-        if (_uiState.value.inConversation || _uiState.value.isStarting) {
-            return
-        }
-        _uiState.update {
-            it.copy(
-                conversationMode = mode,
-                errorMessage = null,
-                warningMessage = null,
-            )
-        }
-    }
-
     fun startConversation() {
         val currentState = _uiState.value
         if (currentState.isStarting || currentState.isStopping) {
@@ -90,16 +76,6 @@ class ConversationViewModel(
             }
             return
         }
-        if (currentState.conversationMode == ConversationMode.SARVAM && !QuickstartConfig.isSarvamConfigured) {
-            _uiState.update {
-                it.copy(
-                    errorMessage = "Add SARVAM_API_KEY and SARVAM_SUBSCRIPTION_KEY to local.properties before starting Sarvam mode.",
-                    warningMessage = null,
-                )
-            }
-            return
-        }
-
         viewModelScope.launch {
             _uiState.update {
                 it.copy(
@@ -127,7 +103,6 @@ class ConversationViewModel(
                     repository.inviteAgent(
                         channelName = bootstrap.channel,
                         requesterRtcUid = requesterRtcUid,
-                        conversationMode = _uiState.value.conversationMode,
                     )
                 }.getOrNull()
                 activeAgentId = inviteResult?.agentId
