@@ -52,10 +52,9 @@ To work from an existing clone instead:
 ```bash
 git clone https://github.com/AgoraIO-Conversational-AI/agent-quickstart-android.git
 cd agent-quickstart-android
-agora project env write server/.env.local \
-  --project <project-name-or-id> \
-  --template standard
 ```
+
+If you use an existing clone, you will select the Agora project when you configure the server in the next step.
 
 ### 3. Configure and run the Python server
 
@@ -65,6 +64,15 @@ source server/.venv/bin/activate
 pip install -r server/requirements-dev.txt
 cp -n server/.env.example server/.env.local
 agora project env write server/.env.local --template standard
+./server/run.sh
+```
+
+The command above uses the project selected by `agora init`. For an existing clone, select the project explicitly instead:
+
+```bash
+agora project env write server/.env.local \
+  --project <project-name-or-id> \
+  --template standard
 ./server/run.sh
 ```
 
@@ -96,7 +104,7 @@ Write the public server URL to root `local.properties`:
 ./server/configure-android.sh https://your-public-host
 ```
 
-The script writes only these client values:
+The script writes only this client value:
 
 ```properties
 QUICKSTART_SERVER_URL=https://your-public-host
@@ -149,6 +157,12 @@ Most teams will customize these pieces first:
 
 ## Build And Test
 
+Run the Python server tests:
+
+```bash
+server/.venv/bin/python -m pytest server/tests
+```
+
 Compile Kotlin:
 
 ```bash
@@ -171,7 +185,7 @@ JAVA_HOME="/Applications/Android Studio.app/Contents/jbr/Contents/Home" ./gradle
 
 - [Setup](docs/setup.md): CLI, server, tunnel, and Android configuration
 - [Local HTTPS tunnels](docs/local-tunnels.md): expose the development server to a physical device
-- [Backend runbook](docs/backend-runbook.md): HTTPS, API contract, deployment, and smoke checks
+- [Backend runbook](docs/backend-runbook.md): local server, public tunnel, API contract, deployment, and smoke checks
 - [Architecture](docs/architecture.md): app structure, code map, session lifecycle, and state flow
 - [Troubleshooting](docs/troubleshooting.md): common setup, agent, RTM, metrics, and microphone issues
 - [Agent coding guidance](docs/agent-guidance.md): Agora CLI skills and guidance for AI coding agents
