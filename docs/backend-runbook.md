@@ -14,7 +14,7 @@ cp server/.env.example server/.env.local
 agora project env write server/.env.local
 ```
 
-Add `QUICKSTART_APP_TOKEN` and any optional model settings to `server/.env.local`. Generate a development token with `python3 -c 'import secrets; print(secrets.token_urlsafe(32))'`.
+Add any optional model settings to `server/.env.local`. `AGORA_APP_ID` and `AGORA_APP_CERTIFICATE` are the only required server credentials.
 
 ## Run HTTPS and create a public URL
 
@@ -33,7 +33,7 @@ In a second terminal:
 The first-party Agora tunnel relay is not live yet. The tunnel helper prefers Cloudflare Quick Tunnel and falls back to ngrok. Both publish a trusted public HTTPS URL while forwarding to the local HTTPS port. Configure Android after the URL appears:
 
 ```bash
-QUICKSTART_APP_TOKEN=your_token ./server/configure-android.sh https://generated-public-host
+./server/configure-android.sh https://generated-public-host
 ```
 
 See [Local HTTPS tunnels](local-tunnels.md) for manual provider commands, public health verification, URL rotation, and troubleshooting. Rebuild or reinstall the app whenever the public URL changes.
@@ -49,14 +49,13 @@ For a stable production URL, deploy the same ASGI app behind a managed HTTPS loa
 - `POST /v1/conversation/leave` stops the agent and removes server session state.
 - `POST /v1/conversation/refresh` rotates the user token after validating the session identity.
 
-All `/v1` endpoints require `Authorization: Bearer <QUICKSTART_APP_TOKEN>`. The in-memory session and rate-limit stores are suitable for one process. Use Redis or another shared store before scaling to multiple workers.
+The Android app does not send Agora credentials or a custom bearer token. The backend generates the user's RTC/RTM token, starts and controls the agent through `agora-agents`, and returns only the values required by the RTC and RTM SDKs. The in-memory session and rate-limit stores are suitable for one process. Use Redis or another shared store and add product-level user authentication before scaling or deploying publicly.
 
 ## Smoke check
 
 ```bash
 curl --cacert server/certs/dev-cert.pem https://localhost:8443/health
-curl -H "Authorization: Bearer $QUICKSTART_APP_TOKEN" \
-  --cacert server/certs/dev-cert.pem \
+curl --cacert server/certs/dev-cert.pem \
   -X POST https://localhost:8443/v1/conversation/bootstrap \
   -H "Content-Type: application/json" \
   -d '{}'

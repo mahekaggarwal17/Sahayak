@@ -47,7 +47,7 @@ Write backend credentials with:
 agora project env write server/.env.local
 ```
 
-Then add `QUICKSTART_APP_TOKEN` to `server/.env.local`, run `./server/tunnel.sh`, and use `./server/configure-android.sh` to write the public URL and token to root `local.properties`.
+Then run `./server/tunnel.sh` and use `./server/configure-android.sh` to write the public URL to root `local.properties`.
 
 The first-party Agora tunnel relay is still under development. This quickstart currently relies on a third-party development tunnel. The helper prefers Cloudflare Quick Tunnel and falls back to ngrok; [Local HTTPS tunnels](local-tunnels.md) documents those providers and additional options.
 
@@ -80,14 +80,12 @@ Put Agora credentials in `server/.env.local`:
 AGORA_APP_ID=your_agora_app_id
 AGORA_APP_CERTIFICATE=your_agora_app_certificate
 AGORA_AGENT_UID=123456
-QUICKSTART_APP_TOKEN=your_random_app_token
 ```
 
 After starting the HTTPS server and tunnel, put only these values in root `local.properties`:
 
 ```properties
 QUICKSTART_SERVER_URL=https://your-public-host
-QUICKSTART_SERVER_TOKEN=your_random_app_token
 ```
 
 If the tunnel assigns a new URL, run `server/configure-android.sh` again and rebuild or reinstall the Android app because these values are compiled into `BuildConfig`.
@@ -107,13 +105,11 @@ Tap **Start voice session**, allow microphone permission, speak to the agent, an
 Required in `local.properties`:
 
 - `QUICKSTART_SERVER_URL`
-- `QUICKSTART_SERVER_TOKEN`
 
 Required in `server/.env.local`:
 
 - `AGORA_APP_ID`
 - `AGORA_APP_CERTIFICATE`
-- `QUICKSTART_APP_TOKEN`
 
 Notes:
 
@@ -145,8 +141,8 @@ This repo uses a backend-orchestrated flow.
 It is useful when you want to:
 
 - learn how Agora Conversational AI works end to end
-- ship a quick prototype without a backend
+- ship a quick prototype with a minimal backend
 - build a reusable Android template for your team
 - understand the minimum code needed for a voice AI app
 
-The App Certificate is backend-only. The shared Android bearer token is appropriate for a controlled quickstart but should be replaced with per-user authentication before a public production launch.
+The App Certificate is backend-only. The quickstart endpoints intentionally omit application-user authentication to keep the local demo focused on Agora token generation and agent lifecycle. Add your product's user authentication and authorization at the server boundary before a public production launch.

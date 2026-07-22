@@ -86,18 +86,14 @@ The response must be the backend health JSON, not a provider login page, warning
 
 ## 4. Configure and rebuild Android
 
-Use the same `QUICKSTART_APP_TOKEN` stored in `server/.env.local`:
-
 ```bash
-QUICKSTART_APP_TOKEN=your_token \
-  ./server/configure-android.sh https://your-public-host
+./server/configure-android.sh https://your-public-host
 ```
 
 This writes the following values to root `local.properties`:
 
 ```properties
 QUICKSTART_SERVER_URL=https://your-public-host
-QUICKSTART_SERVER_TOKEN=your_token
 ```
 
 Build and reinstall the app after changing the URL because the values are compiled into Android `BuildConfig`:
@@ -118,12 +114,10 @@ Most free tunnel URLs are ephemeral. Repeat the configure and rebuild steps when
 | Public `/health` returns provider HTML | Complete any provider setup or use another provider. Android requires the backend JSON response. |
 | Android still calls an old URL | Run `configure-android.sh` again, rebuild, and reinstall the app. |
 | Public URL returns `502` or `504` | Restart the backend first, then restart the tunnel and verify `/health`. |
-| API returns `401` | Confirm `QUICKSTART_SERVER_TOKEN` matches `QUICKSTART_APP_TOKEN`. The public `/health` endpoint does not require authentication. |
 
 ## Security
 
 - Treat the generated URL as public while the tunnel is running.
-- Use a random `QUICKSTART_APP_TOKEN` and do not post it in logs, screenshots, or issue reports.
 - Stop the tunnel when testing is finished.
-- Rotate the app token if it is exposed.
 - Do not put `AGORA_APP_CERTIFICATE` in `local.properties` or the Android app.
+- Add application-user authentication before using this server outside a controlled local demo.

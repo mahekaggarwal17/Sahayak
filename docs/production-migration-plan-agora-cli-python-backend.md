@@ -63,7 +63,7 @@ This document defines the concrete implementation plan to replace on-device agen
 
 ## 5) Request/response security model
 1. Add a server auth mechanism:
-1. API token in `Authorization: Bearer <token>` or mTLS for trusted environments.
+1. The quickstart client sends no custom bearer token. Product authentication is a separate production concern and must not be confused with Agora RTC/RTM or REST credentials.
 1. Android includes this token on every backend request.
 1. Validate request origin and required fields.
 1. Enforce per-request rate limiting and basic replay protection where practical.
@@ -73,7 +73,6 @@ This document defines the concrete implementation plan to replace on-device agen
 ## 6) Backend implementation steps
 1. Create configuration module with:
 1. `AGORA_APP_ID`, `AGORA_APP_CERTIFICATE`.
-1. `QUICKSTART_APP_TOKEN` (shared auth token for app-to-server calls).
 1. `DEFAULT_PRESET`, `ASR_MODEL`, `LLM_MODEL`, `TTS_MODEL`.
 1. `ALLOWED_ORIGINS` for CORS.
 1. `PORT`, `HOST`, `TLS_CERT_PATH`, `TLS_KEY_PATH`.
@@ -116,7 +115,6 @@ This document defines the concrete implementation plan to replace on-device agen
 1. stop requiring `AGORA_APP_CERTIFICATE` in config checks.
 1. Add server config in `app/build.gradle.kts`:
 1. read `QUICKSTART_SERVER_URL`.
-1. optional `QUICKSTART_SERVER_TOKEN`.
 1. Add `BACKEND_BASE_URL`, and `BACKEND_AUTH_TOKEN` to `QuickstartConfig`.
 1. Add backend client API layer:
 1. replace Agora REST calls in `ConversationAgoraApi` with backend calls.
@@ -155,7 +153,6 @@ This document defines the concrete implementation plan to replace on-device agen
 1. expose public URL via tunnel or deployment host.
 1. write URL and token to Android `local.properties`:
 1. `QUICKSTART_SERVER_URL=...`
-1. `QUICKSTART_SERVER_TOKEN=...`
 1. run Android app and execute start/interrupt/stop scenario.
 
 ## 11) Testing tasks
