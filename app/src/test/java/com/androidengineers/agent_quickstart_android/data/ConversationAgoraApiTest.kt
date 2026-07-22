@@ -6,6 +6,7 @@ import okhttp3.mockwebserver.MockWebServer
 import com.google.gson.JsonParser
 import org.junit.After
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNull
 import org.junit.Before
 import org.junit.Test
 
@@ -19,7 +20,6 @@ class ConversationAgoraApiTest {
         server.start()
         api = ConversationAgoraApi(
             baseUrl = server.url("/").toString(),
-            authToken = "android-test-token",
         )
     }
 
@@ -27,7 +27,7 @@ class ConversationAgoraApiTest {
     fun tearDown() = server.shutdown()
 
     @Test
-    fun bootstrapUsesBackendContractAndBearerToken() = runBlocking {
+    fun bootstrapUsesBackendContractWithoutClientAuthorization() = runBlocking {
         server.enqueue(
             MockResponse().setBody(
                 """{"app_id":"app","agent_rtc_uid":123456,"channel_name":"room-a","rtc_token":"rtc","rtm_token":"rtm","requester_rtc_uid":42,"requester_rtm_user_id":"42"}"""
@@ -42,7 +42,7 @@ class ConversationAgoraApiTest {
         assertEquals("room-a", result.channel)
         assertEquals("42", result.uid)
         assertEquals("/v1/conversation/bootstrap", request.path)
-        assertEquals("Bearer android-test-token", request.getHeader("Authorization"))
+        assertNull(request.getHeader("Authorization"))
     }
 
     @Test
