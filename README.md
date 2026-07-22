@@ -11,7 +11,7 @@ It gives you a Kotlin + Jetpack Compose app backed by a small Python service tha
 - keeps the App Certificate and token generation off the Android device
 
 > [!NOTE]
-> This quickstart requires the included Python backend. The first-party Agora tunnel relay is still under development, so local mobile testing currently uses a temporary third-party HTTPS tunnel.
+> This quickstart requires the included Python backend. Local mobile testing uses a temporary public HTTPS tunnel so the Android device can reach the development server.
 
 ## Prerequisites
 
@@ -20,7 +20,7 @@ It gives you a Kotlin + Jetpack Compose app backed by a small Python service tha
 - Bash and OpenSSL for the scripts in `server/`
 - An Android device or emulator with microphone support
 - An Agora account with access to Conversational AI
-- A development tunnel provider; the included helper supports Cloudflare Tunnel or ngrok
+- A development tunnel provider; the included helper supports Cloudflare Tunnel, ngrok, Tailscale Funnel, and LocalTunnel
 
 The commands below assume a macOS or Linux shell. On Windows, run the backend scripts from WSL or an equivalent Bash environment.
 
@@ -65,11 +65,8 @@ source server/.venv/bin/activate
 pip install -r server/requirements-dev.txt
 cp -n server/.env.example server/.env.local
 agora project env write server/.env.local --template standard
-python3 -c 'import secrets; print(f"QUICKSTART_APP_TOKEN={secrets.token_urlsafe(32)}")' >> server/.env.local
 ./server/run.sh
 ```
-
-Only run the token-generation command once. If `QUICKSTART_APP_TOKEN` already exists in `server/.env.local`, keep that value instead of adding another entry.
 
 The server listens on `https://localhost:8443` and keeps `AGORA_APP_CERTIFICATE` off the Android device. Leave this terminal running.
 
@@ -78,10 +75,10 @@ The server listens on `https://localhost:8443` and keeps `AGORA_APP_CERTIFICATE`
 In another terminal, run:
 
 ```bash
-./server/tunnel.sh
+./server/tunnel.sh --provider ngrok
 ```
 
-The helper uses Cloudflare Quick Tunnel when installed and otherwise uses ngrok. Keep the tunnel running and copy its generated `https://` URL.
+Choose `cloudflare`, `ngrok`, `tailscale`, or `localtunnel` with `--provider`. Keep the tunnel running and copy its generated `https://` URL.
 
 Verify that the public endpoint reaches the Python server:
 
@@ -93,10 +90,9 @@ The response must be backend health JSON, not a tunnel-provider login or warning
 
 ### 5. Configure Android
 
-Load the quickstart token from the server environment and write the public URL to root `local.properties`:
+Write the public server URL to root `local.properties`:
 
 ```bash
-export QUICKSTART_APP_TOKEN="$(sed -n 's/^QUICKSTART_APP_TOKEN=//p' server/.env.local)"
 ./server/configure-android.sh https://your-public-host
 ```
 
@@ -104,7 +100,6 @@ The script writes only these client values:
 
 ```properties
 QUICKSTART_SERVER_URL=https://your-public-host
-QUICKSTART_SERVER_TOKEN=your_random_app_token
 ```
 
 Do not put `AGORA_APP_CERTIFICATE` in `local.properties`.
@@ -183,4 +178,4 @@ JAVA_HOME="/Applications/Android Studio.app/Contents/jbr/Contents/Home" ./gradle
 
 ## Security Note
 
-`AGORA_APP_CERTIFICATE` stays in `server/.env.local` and is never compiled into Android. A development tunnel URL is public while the tunnel is running. The Android bearer token is still extractable from an APK, so production deployments should replace the shared quickstart token with user authentication and authorization.
+`AGORA_APP_CERTIFICATE` stays in `server/.env.local` and is never compiled into Android. The Python server generates the Android user's RTC/RTM token and uses the Agora Python SDK to start, interrupt, and stop the agent. A development tunnel URL is public while the tunnel is running, so stop the tunnel when testing is complete and add appropriate application authentication before adapting this demo for production.
