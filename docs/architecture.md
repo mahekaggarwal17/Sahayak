@@ -21,8 +21,7 @@ It shows how to:
 - `app/src/main/java/com/androidengineers/agent_quickstart_android/ui/ConversationViewModel.kt`: screen state and user actions
 - `app/src/main/java/com/androidengineers/agent_quickstart_android/ui/ConversationUiStateMapper.kt`: pure mapping from session data to UI state
 - `app/src/main/java/com/androidengineers/agent_quickstart_android/rtc/AgoraConversationSessionManager.kt`: RTC, RTM, transcript, and audio session lifecycle
-- `app/src/main/java/com/androidengineers/agent_quickstart_android/data/ConversationAgoraApi.kt`: direct Agora REST client
-- `app/src/main/java/com/androidengineers/agent_quickstart_android/data/AgoraLocalTokenFactory.kt`: demo-only local token generation
+- `app/src/main/java/com/androidengineers/agent_quickstart_android/data/ConversationAgoraApi.kt`: Python backend client
 - `app/src/main/java/com/androidengineers/agent_quickstart_android/config/QuickstartConfig.kt`: configuration helpers
 - `app/src/main/java/com/androidengineers/agent_quickstart_android/model/ConversationModels.kt`: shared data models
 
@@ -33,6 +32,15 @@ It shows how to:
 - `app/src/main/java/com/androidengineers/agent_quickstart_android/audio/SelfSpeechFilter.kt`
 - `app/src/main/java/com/androidengineers/agent_quickstart_android/audio/BargeInDetector.kt`
 - `app/src/main/java/com/androidengineers/agent_quickstart_android/rtc/TranscriptAssembler.kt`
+
+### Python Server
+
+- `server/app/main.py`: FastAPI lifecycle, CORS, request IDs, and timing
+- `server/app/routes.py`: public API contract and session validation
+- `server/app/agora_client.py`: token generation and Agora Conversational AI REST calls
+- `server/app/session_store.py`: in-memory TTL and idempotency state
+- `server/run.sh`: local TLS server
+- `server/tunnel.sh`: public HTTPS tunnel
 
 ### Tests
 
@@ -49,13 +57,15 @@ It shows how to:
 flowchart TD
     Screen["ConversationScreen"] --> VM["ConversationViewModel"]
     VM --> State["ConversationUiStateMapper"]
-    VM --> API["ConversationAgoraApi"]
+    VM --> API["Conversation backend API"]
     VM --> Session["AgoraConversationSessionManager"]
     Session --> Audio["AudioSessionManager"]
     Session --> Turns["TurnManager"]
     Session --> Transcript["TranscriptAssembler"]
     Session --> RTM["RTM handlers"]
-    API --> Tokens["AgoraLocalTokenFactory"]
+    API --> Server["Python FastAPI server"]
+    Server --> Tokens["Agora token generation"]
+    Server --> Rest["Agora Conversational AI REST"]
 ```
 
 This is the easiest way to understand where the code lives:
@@ -68,9 +78,9 @@ This is the easiest way to understand where the code lives:
 
 ## How It Works
 
-1. The app reads `AGORA_APP_ID`, `AGORA_APP_CERTIFICATE`, and related config from `local.properties`.
-2. It generates RTC, RTM, and agent REST tokens locally for demo convenience.
-3. It calls Agora REST to start the Conversational AI agent and scopes the agent to the generated requester RTC UID.
+1. The app reads the Python server URL and bearer token from `local.properties`.
+2. The server generates short-lived RTC and RTM tokens and returns bootstrap data to Android.
+3. The server calls Agora REST to start the Conversational AI agent and scopes the agent to the generated requester RTC UID.
 4. The Android app joins the RTC channel with the chorus audio scenario and subscribes to RTM.
 5. The agent sends transcripts, state updates, errors, and metrics back to the app.
 6. The user can speak, mute, interrupt, and end the session from the UI.
@@ -81,9 +91,10 @@ This is the easiest way to understand where the code lives:
 flowchart LR
     U["User"] --> UI["Compose UI"]
     UI --> VM["ConversationViewModel"]
-    VM --> API["ConversationAgoraApi"]
-    API --> TOKENS["AgoraLocalTokenFactory"]
-    API --> REST["Agora Conversational AI REST"]
+    VM --> API["Conversation backend API"]
+    API --> SERVER["Python FastAPI server"]
+    SERVER --> TOKENS["Token007 generation"]
+    SERVER --> REST["Agora Conversational AI REST"]
     VM --> RTC["AgoraConversationSessionManager"]
     RTC --> AUDIO["AudioSessionManager"]
     RTC --> RTM["RTM transcript + agent state + metrics"]
@@ -100,23 +111,27 @@ The app keeps the template simple by using one Android client, one direct Agora 
 sequenceDiagram
     participant U as User
     participant A as Android App
+    participant S as Python Server
     participant R as Agora REST
     participant C as Agora RTC
     participant M as Agora RTM
     participant G as Agent Runtime
 
     U->>A: Tap Start voice session
-    A->>A: Read config and create local tokens
-    A->>R: POST /join with requester RTC UID
-    R-->>A: agent_id
+    A->>S: POST /bootstrap
+    S-->>A: App ID + RTC/RTM tokens
+    A->>S: POST /join with requester RTC UID
+    S->>R: POST /join
+    R-->>S: agent_id
+    S-->>A: agent_id
     R->>G: Start agent
     A->>C: Join RTC and publish mic
     A->>M: Login and subscribe
     G-->>M: Transcript, state, error, and metrics events
     U->>A: Speak, mute, interrupt
-    A->>R: POST /interrupt
+    A->>S: POST /interrupt
     U->>A: End session
-    A->>R: POST /leave
+    A->>S: POST /leave
     A->>C: Leave RTC
     A->>M: Logout
 ```
@@ -143,8 +158,8 @@ If you are new to Agora, this is the best order:
 1. See the UI first.
 2. Learn how the ViewModel wires actions.
 3. Inspect how the session manager handles RTC, RTM, and audio.
-4. Read the API layer that starts and stops the agent.
-5. Replace demo-only pieces once the end-to-end flow is clear.
+4. Read the Android backend API layer.
+5. Read the Python routes and Agora client that own credentials and agent lifecycle.
 
 ## What To Edit First
 

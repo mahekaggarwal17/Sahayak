@@ -2,13 +2,13 @@
 
 This repository is a template-style Android starter for building a Voice AI app with Agora Conversational AI.
 
-It gives you a single Kotlin + Jetpack Compose app that:
+It gives you a Kotlin + Jetpack Compose app backed by a small Python service that:
 
 - joins an Agora RTC channel
-- starts an Agora Conversational AI agent
+- starts and manages an Agora Conversational AI agent through the backend
 - listens for transcript, agent state, and pipeline metrics over RTM
 - lets the user talk, mute, interrupt, and end the session
-- keeps the demo in one Android project so it is easy to understand and customize
+- keeps the App Certificate and token generation off the Android device
 
 ## Quick Start
 
@@ -35,13 +35,36 @@ cd my-android-demo
 
 `agora init` clones this starter, selects or creates an Agora project, writes `.agora/project.json`, and writes Agora credentials to root `local.properties`.
 
-### 3. Build the app
+### 3. Configure and run the Python server
+
+```bash
+python3 -m venv server/.venv
+source server/.venv/bin/activate
+pip install -r server/requirements-dev.txt
+agora project env write server/.env.local
+# Add QUICKSTART_APP_TOKEN to server/.env.local, then:
+./server/run.sh
+```
+
+The first-party Agora tunnel relay is still under development and is not available for this demo. In another terminal, run the development tunnel helper, then configure Android with the displayed HTTPS URL:
+
+```bash
+./server/tunnel.sh
+```
+
+```bash
+QUICKSTART_APP_TOKEN=your_token ./server/configure-android.sh https://your-public-host
+```
+
+The helper uses Cloudflare Quick Tunnel when installed and otherwise uses ngrok. See [Local HTTPS tunnels](docs/local-tunnels.md) for explicit ngrok, Cloudflare Tunnel, Tailscale Funnel, and LocalTunnel commands.
+
+### 4. Build the app
 
 ```bash
 JAVA_HOME="/Applications/Android Studio.app/Contents/jbr/Contents/Home" ./gradlew :app:assembleDebug
 ```
 
-### 4. Run it
+### 5. Run it
 
 Open the project in Android Studio, or run it from the command line, then launch it on a device or emulator.
 
@@ -66,11 +89,11 @@ agora project doctor --deep
 JAVA_HOME="/Applications/Android Studio.app/Contents/jbr/Contents/Home" ./gradlew :app:assembleDebug
 ```
 
-The env command writes these values to root `local.properties`:
+The Android app reads only these values from root `local.properties`:
 
 ```properties
-AGORA_APP_ID=...
-AGORA_APP_CERTIFICATE=...
+QUICKSTART_SERVER_URL=https://...
+QUICKSTART_SERVER_TOKEN=...
 ```
 
 For manual setup, optional config, and production notes, see [docs/setup.md](docs/setup.md).
@@ -83,7 +106,7 @@ If you are using this as a template, start here:
 - [ConversationViewModel.kt](app/src/main/java/com/androidengineers/agent_quickstart_android/ui/ConversationViewModel.kt)
 - [AgoraConversationSessionManager.kt](app/src/main/java/com/androidengineers/agent_quickstart_android/rtc/AgoraConversationSessionManager.kt)
 - [ConversationAgoraApi.kt](app/src/main/java/com/androidengineers/agent_quickstart_android/data/ConversationAgoraApi.kt)
-- [AgoraLocalTokenFactory.kt](app/src/main/java/com/androidengineers/agent_quickstart_android/data/AgoraLocalTokenFactory.kt)
+- [Python backend](server/app/main.py)
 
 Those files show the full flow from UI action to Agora session setup.
 
@@ -94,7 +117,7 @@ Most teams will customize these pieces first:
 1. `ConversationScreen.kt` for UI layout, branding, and session cards
 2. `ConversationViewModel.kt` for app state, button actions, and session orchestration
 3. `ConversationAgoraApi.kt` for agent presets, base URL, geofence, or startup behavior
-4. `AgoraLocalTokenFactory.kt` when replacing demo-only local tokens with your backend token flow
+4. `server/app/agora_client.py` for agent presets and provider configuration
 
 ## Build And Test
 
@@ -118,13 +141,13 @@ JAVA_HOME="/Applications/Android Studio.app/Contents/jbr/Contents/Home" ./gradle
 
 ## Docs
 
-- [Setup](docs/setup.md): prerequisites, CLI setup, manual setup, required config, and production security notes
+- [Setup](docs/setup.md): CLI, server, tunnel, and Android configuration
+- [Local HTTPS tunnels](docs/local-tunnels.md): expose the development server to a physical device
+- [Backend runbook](docs/backend-runbook.md): HTTPS, API contract, deployment, and smoke checks
 - [Architecture](docs/architecture.md): app structure, code map, session lifecycle, and state flow
 - [Troubleshooting](docs/troubleshooting.md): common setup, agent, RTM, metrics, and microphone issues
 - [Agent coding guidance](docs/agent-guidance.md): Agora CLI skills and guidance for AI coding agents
 
 ## Security Note
 
-This quickstart is intentionally convenient, not production-safe as-is.
-
-Because `AGORA_APP_CERTIFICATE` is packaged into the app for local token generation, anyone with the built APK can extract it and use your Agora project. Before shipping publicly, move token generation and REST `join`, `interrupt`, and `leave` calls to your backend.
+`AGORA_APP_CERTIFICATE` stays in `server/.env.local` and is never compiled into Android. The Android bearer token is still extractable from an APK, so production deployments should replace the shared quickstart token with user authentication and authorization.

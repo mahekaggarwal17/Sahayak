@@ -1,6 +1,7 @@
 package com.androidengineers.agent_quickstart_android.ui
 
 import android.app.Application
+import android.os.SystemClock
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.androidengineers.agent_quickstart_android.config.QuickstartConfig
@@ -86,6 +87,14 @@ class ConversationViewModel(
             }
 
             runCatching {
+                val healthStartedAt = SystemClock.elapsedRealtime()
+                val health = repository.checkHealth()
+                _uiState.update {
+                    it.copy(
+                        backendLatencyMs = SystemClock.elapsedRealtime() - healthStartedAt,
+                        lastServerResponse = "${health.status} (${health.version})",
+                    )
+                }
                 val bootstrap = repository.requestSessionBootstrap()
                 sessionManager.connect(bootstrap) { channel, rtcUid, rtmUserId ->
                     repository.renewTokens(
@@ -109,7 +118,7 @@ class ConversationViewModel(
                 sessionManager.setActiveAgentId(activeAgentId)
 
                 val warning = if (inviteResult?.agentId == null) {
-                    "The Android client joined the channel, but the direct Agora REST agent start did not succeed. Verify AGORA_APP_CERTIFICATE and your Agora project settings."
+                    "The Android client joined the channel, but the server could not start the Agora agent. Check the server logs and Agora project configuration."
                 } else {
                     null
                 }
@@ -129,9 +138,9 @@ class ConversationViewModel(
                 activeAgentId = null
                 _uiState.value = ConversationUiStateMapper.freshUiState(
                     permissionGranted = _uiState.value.microphonePermissionGranted,
-                    errorMessage = error.message ?: "Unable to start the Agora conversation.",
+                    errorMessage = error.message ?: "Unable to start the conversation through the quickstart server.",
                     isDarkTheme = _uiState.value.isDarkTheme,
-                )
+                ).copy(lastServerResponse = "Request failed")
             }
         }
     }
@@ -152,7 +161,7 @@ class ConversationViewModel(
                         repository.stopConversation(agentId, channelName)
                     }
                 }.exceptionOrNull()?.message?.let { message ->
-                    "The local session ended, but the direct Agora REST leave request failed: $message"
+                    "The local session ended, but the server leave request failed: $message"
                 }
             }
 

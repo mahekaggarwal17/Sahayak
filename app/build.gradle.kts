@@ -42,30 +42,14 @@ android {
 
         buildConfigField(
             "String",
-            "AGORA_APP_ID",
-            quote(localOrEnv("AGORA_APP_ID", "agora.app.id"))
+            "QUICKSTART_SERVER_URL",
+            quote(localOrEnv("QUICKSTART_SERVER_URL"))
         )
         buildConfigField(
             "String",
-            "AGORA_APP_CERTIFICATE",
-            quote(localOrEnv("AGORA_APP_CERTIFICATE"))
+            "QUICKSTART_SERVER_TOKEN",
+            quote(localOrEnv("QUICKSTART_SERVER_TOKEN"))
         )
-        buildConfigField(
-            "String",
-            "AGORA_CONVOAI_BASE_URL",
-            quote(
-                localOrEnv(
-                    "AGORA_CONVOAI_BASE_URL",
-                    default = "https://api.agora.io/api/conversational-ai-agent/v2/projects"
-                )
-            )
-        )
-        buildConfigField(
-            "String",
-            "AGORA_AREA",
-            quote(localOrEnv("AGORA_AREA", default = "US"))
-        )
-        buildConfigField("int", "AGENT_UID", localOrEnv("AGORA_AGENT_UID", default = "123456"))
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
