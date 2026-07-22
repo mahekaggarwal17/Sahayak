@@ -2,7 +2,7 @@
 
 The Android app must reach the Python backend through a publicly trusted HTTPS URL. A physical phone cannot use the development machine's `localhost`, and the backend's generated certificate is not trusted by Android.
 
-The first-party `agora tunnel` relay is still under development and is not currently available for this quickstart. Use one of the temporary development tunnel options below. These services are third-party products with their own accounts, terms, limits, and availability.
+Use one of the temporary development tunnel options below. These services are third-party products with their own accounts, terms, limits, and availability.
 
 Development tunnels are not a production deployment method.
 
@@ -24,15 +24,18 @@ Do not start a tunnel until this returns the backend health response.
 
 ## 2. Create a public HTTPS URL
 
-### Automatic helper: Cloudflare or ngrok
+### Provider-selecting helper
 
-The repository helper uses `cloudflared` when it is installed and falls back to `ngrok`:
+The repository helper requires an explicit provider so it never starts an unintended service:
 
 ```bash
-./server/tunnel.sh
+./server/tunnel.sh --provider cloudflare
+./server/tunnel.sh --provider ngrok
+./server/tunnel.sh --provider tailscale
+./server/tunnel.sh --provider localtunnel
 ```
 
-Keep the tunnel process running and copy the generated `https://` URL.
+Use one command, keep the tunnel process running, and copy the generated `https://` URL. Pass `--port <port>` if the backend is not using its default port `8443`.
 
 ### ngrok
 

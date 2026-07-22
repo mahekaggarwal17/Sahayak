@@ -26,10 +26,10 @@ Run HTTPS locally:
 In another terminal, expose it through a public HTTPS tunnel:
 
 ```bash
-./server/tunnel.sh
+./server/tunnel.sh --provider ngrok
 ```
 
-The first-party Agora tunnel relay is still under development. `tunnel.sh` currently uses Cloudflare Quick Tunnel when available and otherwise uses ngrok. You can also run ngrok, Cloudflare Tunnel, Tailscale Funnel, or LocalTunnel directly; see [`docs/local-tunnels.md`](../docs/local-tunnels.md).
+Choose `cloudflare`, `ngrok`, `tailscale`, or `localtunnel` with the `--provider` flag. You can also run any provider directly; see [`docs/local-tunnels.md`](../docs/local-tunnels.md).
 
 Write the tunnel URL into Android configuration with:
 

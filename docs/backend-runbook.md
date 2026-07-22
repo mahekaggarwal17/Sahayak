@@ -27,10 +27,10 @@ Add any optional model settings to `server/.env.local`. `AGORA_APP_ID` and `AGOR
 In a second terminal:
 
 ```bash
-./server/tunnel.sh
+./server/tunnel.sh --provider ngrok
 ```
 
-The first-party Agora tunnel relay is not live yet. The tunnel helper prefers Cloudflare Quick Tunnel and falls back to ngrok. Both publish a trusted public HTTPS URL while forwarding to the local HTTPS port. Configure Android after the URL appears:
+Choose `cloudflare`, `ngrok`, `tailscale`, or `localtunnel` with `--provider`. Each publishes a trusted public HTTPS URL while forwarding to the local HTTPS port. Configure Android after the URL appears:
 
 ```bash
 ./server/configure-android.sh https://generated-public-host

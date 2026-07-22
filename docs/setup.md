@@ -47,9 +47,9 @@ Write backend credentials with:
 agora project env write server/.env.local
 ```
 
-Then run `./server/tunnel.sh` and use `./server/configure-android.sh` to write the public URL to root `local.properties`.
+Then run `./server/tunnel.sh --provider <provider>` and use `./server/configure-android.sh` to write the public URL to root `local.properties`.
 
-The first-party Agora tunnel relay is still under development. This quickstart currently relies on a third-party development tunnel. The helper prefers Cloudflare Quick Tunnel and falls back to ngrok; [Local HTTPS tunnels](local-tunnels.md) documents those providers and additional options.
+The helper supports `cloudflare`, `ngrok`, `tailscale`, and `localtunnel`. [Local HTTPS tunnels](local-tunnels.md) documents the requirements and direct commands for each provider.
 
 ## Manual Setup
 
