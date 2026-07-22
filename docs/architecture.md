@@ -78,7 +78,7 @@ This is the easiest way to understand where the code lives:
 
 ## How It Works
 
-1. The app reads the Python server URL and bearer token from `local.properties`.
+1. The app reads the Python server URL from `local.properties`.
 2. The server generates short-lived RTC and RTM tokens and returns bootstrap data to Android.
 3. The server calls Agora REST to start the Conversational AI agent and scopes the agent to the generated requester RTC UID.
 4. The Android app joins the RTC channel with the chorus audio scenario and subscribes to RTM.

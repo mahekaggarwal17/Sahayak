@@ -1,6 +1,6 @@
 # Python conversation server
 
-This FastAPI service keeps the Agora App Certificate and Conversational AI REST calls off the Android device. It exposes bootstrap, join, interrupt, leave, refresh, and health endpoints on HTTPS port `8443` by default.
+This FastAPI service keeps the Agora App Certificate and Conversational AI REST calls off the Android device. It exposes bootstrap, join, interrupt, leave, refresh, and health endpoints on `http://127.0.0.1:8000` by default. The tunnel provider terminates public HTTPS.
 
 ## Setup
 
@@ -8,7 +8,7 @@ This FastAPI service keeps the Agora App Certificate and Conversational AI REST 
 python3 -m venv server/.venv
 source server/.venv/bin/activate
 pip install -r server/requirements-dev.txt
-cp server/.env.example server/.env.local
+cp -n server/.env.example server/.env.local
 ```
 
 Use the Agora CLI to seed the backend credentials. The App Certificate remains on this server and is used to generate the mobile user's RTC/RTM token and the agent's Agora credentials:
@@ -17,7 +17,7 @@ Use the Agora CLI to seed the backend credentials. The App Certificate remains o
 agora project env write server/.env.local
 ```
 
-Run HTTPS locally:
+Run the loopback HTTP server:
 
 ```bash
 ./server/run.sh
@@ -37,6 +37,6 @@ Write the tunnel URL into Android configuration with:
 ./server/configure-android.sh https://your-public-host
 ```
 
-The local certificate is generated into `server/certs/` on first start. Android connects to the tunnel's publicly trusted certificate, not the local self-signed certificate.
+Android connects only to the tunnel provider's publicly trusted HTTPS endpoint. The loopback HTTP server is not exposed directly to the device or local network.
 
 See `docs/backend-runbook.md` for the API contract, deployment alternatives, and smoke checks.

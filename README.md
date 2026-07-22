@@ -17,7 +17,7 @@ It gives you a Kotlin + Jetpack Compose app backed by a small Python service tha
 
 - Android Studio with JDK 17 or newer
 - Python 3.10 or newer
-- Bash and OpenSSL for the scripts in `server/`
+- Bash for the scripts in `server/`
 - An Android device or emulator with microphone support
 - An Agora account with access to Conversational AI
 - A development tunnel provider; the included helper supports Cloudflare Tunnel, ngrok, Tailscale Funnel, and LocalTunnel
@@ -68,7 +68,7 @@ agora project env write server/.env.local --template standard
 ./server/run.sh
 ```
 
-The server listens on `https://localhost:8443` and keeps `AGORA_APP_CERTIFICATE` off the Android device. Leave this terminal running.
+The server listens on `http://127.0.0.1:8000` and keeps `AGORA_APP_CERTIFICATE` off the Android device. Leave this terminal running. The local endpoint uses HTTP; the selected tunnel provider supplies the public HTTPS endpoint required by Android.
 
 ### 4. Create a temporary public HTTPS URL
 

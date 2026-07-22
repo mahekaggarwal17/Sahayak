@@ -1,6 +1,6 @@
 # Local HTTPS tunnels
 
-The Android app must reach the Python backend through a publicly trusted HTTPS URL. A physical phone cannot use the development machine's `localhost`, and the backend's generated certificate is not trusted by Android.
+The Android app must reach the Python backend through a publicly trusted HTTPS URL. A physical phone cannot use the development machine's loopback address, so the tunnel provider terminates public HTTPS and forwards requests to the local HTTP server.
 
 Use one of the temporary development tunnel options below. These services are third-party products with their own accounts, terms, limits, and availability.
 
@@ -14,10 +14,10 @@ From the repository root:
 ./server/run.sh
 ```
 
-Keep that terminal running. In another terminal, verify the local HTTPS endpoint:
+Keep that terminal running. In another terminal, verify the local HTTP endpoint:
 
 ```bash
-curl --cacert server/certs/dev-cert.pem https://localhost:8443/health
+curl http://127.0.0.1:8000/health
 ```
 
 Do not start a tunnel until this returns the backend health response.
@@ -35,14 +35,14 @@ The repository helper requires an explicit provider so it never starts an uninte
 ./server/tunnel.sh --provider localtunnel
 ```
 
-Use one command, keep the tunnel process running, and copy the generated `https://` URL. Pass `--port <port>` if the backend is not using its default port `8443`.
+Use one command, keep the tunnel process running, and copy the generated `https://` URL. Pass `--port <port>` if the backend is not using its default port `8000`.
 
 ### ngrok
 
-Install and authenticate the [ngrok agent](https://ngrok.com/docs/getting-started/), then forward to the local HTTPS origin:
+Install and authenticate the [ngrok agent](https://ngrok.com/docs/getting-started/), then forward to the local HTTP origin:
 
 ```bash
-ngrok http https://localhost:8443
+ngrok http http://127.0.0.1:8000
 ```
 
 Use the HTTPS forwarding URL printed by ngrok. An account and agent authtoken may be required.
@@ -52,17 +52,17 @@ Use the HTTPS forwarding URL printed by ngrok. An account and agent authtoken ma
 Install [`cloudflared`](https://developers.cloudflare.com/cloudflare-one/connections/connect-networks/downloads/), then run:
 
 ```bash
-cloudflared tunnel --url https://localhost:8443 --no-tls-verify
+cloudflared tunnel --url http://127.0.0.1:8000
 ```
 
 Use the generated `https://*.trycloudflare.com` URL. Quick Tunnels do not require a Cloudflare account, but Cloudflare documents them as development-only and does not provide an uptime SLA.
 
 ### Tailscale Funnel
 
-Install Tailscale, sign in, and enable Funnel for the tailnet. The backend uses a self-signed local certificate, so use Tailscale's `https+insecure` origin scheme:
+Install Tailscale, sign in, and enable Funnel for the tailnet:
 
 ```bash
-tailscale funnel https+insecure://localhost:8443
+tailscale funnel http://127.0.0.1:8000
 ```
 
 Use the public `https://*.ts.net` URL printed by Tailscale. Funnel availability and approval depend on the tailnet policy.
@@ -72,7 +72,7 @@ Use the public `https://*.ts.net` URL printed by Tailscale. Funnel availability 
 With Node.js and npm installed, run:
 
 ```bash
-npx localtunnel --port 8443 --local-https --allow-invalid-cert
+npx localtunnel --port 8000
 ```
 
 Use the generated HTTPS URL. Some public LocalTunnel relays may present an interstitial or impose rate limits. If `/health` does not return JSON directly, choose another provider.
@@ -112,8 +112,7 @@ Most free tunnel URLs are ephemeral. Repeat the configure and rebuild steps when
 
 | Symptom | Action |
 | --- | --- |
-| Tunnel reports connection refused | Confirm `./server/run.sh` is still running and listening on port `8443`. |
-| Tunnel reports a certificate error | Use the provider command shown above; it explicitly permits the backend's development certificate. |
+| Tunnel reports connection refused | Confirm `./server/run.sh` is still running and listening on port `8000`. |
 | Public `/health` returns provider HTML | Complete any provider setup or use another provider. Android requires the backend JSON response. |
 | Android still calls an old URL | Run `configure-android.sh` again, rebuild, and reinstall the app. |
 | Public URL returns `502` or `504` | Restart the backend first, then restart the tunnel and verify `/health`. |

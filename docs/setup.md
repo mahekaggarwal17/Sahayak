@@ -10,7 +10,7 @@
 
 ## Recommended Setup
 
-The easiest path is to let the Agora CLI scaffold the app and write Android credentials to `local.properties`.
+The easiest path is to let the Agora CLI scaffold the app, bind an Agora project, and write the App ID and Certificate to the Python server environment.
 
 ```bash
 curl -fsSL https://dl.agora.io/cli/install.sh | sh
@@ -21,12 +21,20 @@ cd my-android-demo
 python3 -m venv server/.venv
 source server/.venv/bin/activate
 pip install -r server/requirements-dev.txt
+cp -n server/.env.example server/.env.local
 agora project env write server/.env.local
 ./server/run.sh
+```
+
+In another terminal, start a tunnel, configure Android with its public HTTPS URL, and build:
+
+```bash
+./server/tunnel.sh --provider ngrok
+./server/configure-android.sh https://your-public-host
 JAVA_HOME="/Applications/Android Studio.app/Contents/jbr/Contents/Home" ./gradlew :app:assembleDebug
 ```
 
-`agora init` clones this starter, selects or creates an Agora project, writes `.agora/project.json`, and writes Agora credentials to root `local.properties`.
+`agora init` clones this starter, selects or creates an Agora project, and writes `.agora/project.json`. Agora credentials remain in `server/.env.local`.
 
 ## Working From A Clone
 
@@ -36,18 +44,16 @@ Use this if you already cloned this repository:
 git clone https://github.com/AgoraIO-Conversational-AI/agent-quickstart-android.git
 cd agent-quickstart-android
 agora login
-agora quickstart env write . --template android --project <your-project>
+python3 -m venv server/.venv
+source server/.venv/bin/activate
+pip install -r server/requirements-dev.txt
+cp -n server/.env.example server/.env.local
+agora project env write server/.env.local --project <your-project> --template standard
 agora project doctor --deep
-JAVA_HOME="/Applications/Android Studio.app/Contents/jbr/Contents/Home" ./gradlew :app:assembleDebug
+./server/run.sh
 ```
 
-Write backend credentials with:
-
-```properties
-agora project env write server/.env.local
-```
-
-Then run `./server/tunnel.sh --provider <provider>` and use `./server/configure-android.sh` to write the public URL to root `local.properties`.
+In another terminal, run `./server/tunnel.sh --provider <provider>`, use `./server/configure-android.sh` to write the public URL to root `local.properties`, then build the app.
 
 The helper supports `cloudflare`, `ngrok`, `tailscale`, and `localtunnel`. [Local HTTPS tunnels](local-tunnels.md) documents the requirements and direct commands for each provider.
 
@@ -82,7 +88,7 @@ AGORA_APP_CERTIFICATE=your_agora_app_certificate
 AGORA_AGENT_UID=123456
 ```
 
-After starting the HTTPS server and tunnel, put only these values in root `local.properties`:
+After starting the local HTTP server and public HTTPS tunnel, put only this value in root `local.properties`:
 
 ```properties
 QUICKSTART_SERVER_URL=https://your-public-host
@@ -111,10 +117,7 @@ Required in `server/.env.local`:
 - `AGORA_APP_ID`
 - `AGORA_APP_CERTIFICATE`
 
-Notes:
-
-- `AGORA_APP_ID` also supports the legacy key `agora.app.id`
-- `AGORA_AREA` maps to the ConvoAI REST `geofence.area` value
+`AGORA_AREA` selects the Agora API routing region. Supported values are `NORTH_AMERICA`, `US`, `EUROPE`, `EU`, `ASIA_PACIFIC`, `AP`, `CHINA`, and `CN`.
 
 ## Default Agent Setup
 
@@ -131,8 +134,7 @@ It also enables:
 - RTM pipeline metrics
 - agent subscription scoped to the generated requester RTC UID
 - chorus audio scenario for the agent and local RTC engine
-- start-of-speech interruption
-- VAD-based end-of-speech detection
+- SDK-managed turn detection
 
 ## Production Security
 

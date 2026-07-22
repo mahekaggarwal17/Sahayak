@@ -16,13 +16,13 @@ agora project env write server/.env.local
 
 Add any optional model settings to `server/.env.local`. `AGORA_APP_ID` and `AGORA_APP_CERTIFICATE` are the only required server credentials.
 
-## Run HTTPS and create a public URL
+## Run locally and create a public HTTPS URL
 
 ```bash
 ./server/run.sh
 ```
 
-`run.sh` listens on `0.0.0.0:8443` and generates a 30-day local certificate if the configured certificate files do not exist.
+`run.sh` listens on `http://127.0.0.1:8000`. It intentionally uses loopback HTTP because the tunnel process runs on the same machine and terminates public TLS.
 
 In a second terminal:
 
@@ -30,7 +30,7 @@ In a second terminal:
 ./server/tunnel.sh --provider ngrok
 ```
 
-Choose `cloudflare`, `ngrok`, `tailscale`, or `localtunnel` with `--provider`. Each publishes a trusted public HTTPS URL while forwarding to the local HTTPS port. Configure Android after the URL appears:
+Choose `cloudflare`, `ngrok`, `tailscale`, or `localtunnel` with `--provider`. Each publishes a trusted public HTTPS URL while forwarding to the loopback HTTP port. Configure Android after the URL appears:
 
 ```bash
 ./server/configure-android.sh https://generated-public-host
@@ -54,9 +54,8 @@ The Android app does not send Agora credentials or a custom bearer token. The ba
 ## Smoke check
 
 ```bash
-curl --cacert server/certs/dev-cert.pem https://localhost:8443/health
-curl --cacert server/certs/dev-cert.pem \
-  -X POST https://localhost:8443/v1/conversation/bootstrap \
+curl http://127.0.0.1:8000/health
+curl -X POST http://127.0.0.1:8000/v1/conversation/bootstrap \
   -H "Content-Type: application/json" \
   -d '{}'
 ```

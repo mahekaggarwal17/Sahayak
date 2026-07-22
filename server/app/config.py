@@ -18,17 +18,14 @@ def _csv(value: str) -> tuple[str, ...]:
 class Settings:
     agora_app_id: str
     agora_app_certificate: str
-    default_preset: str = "deepgram_nova_3,openai_gpt_4o_mini,minimax_speech_2_6_turbo"
     asr_model: str = "nova-3"
     llm_model: str = "gpt-4o-mini"
     tts_model: str = "speech_2_6_turbo"
     tts_voice_id: str = "English_captivating_female1"
     agora_area: str = "NORTH_AMERICA"
     agent_uid: int = 123456
-    host: str = "0.0.0.0"
-    port: int = 8443
-    tls_cert_path: str = "certs/dev-cert.pem"
-    tls_key_path: str = "certs/dev-key.pem"
+    host: str = "127.0.0.1"
+    port: int = 8000
     allowed_origins: tuple[str, ...] = ("*",)
     token_expiry_seconds: int = 3600
     session_ttl_seconds: int = 7200
@@ -42,20 +39,14 @@ class Settings:
         return cls(
             agora_app_id=os.getenv("AGORA_APP_ID", "").strip(),
             agora_app_certificate=os.getenv("AGORA_APP_CERTIFICATE", "").strip(),
-            default_preset=os.getenv(
-                "DEFAULT_PRESET",
-                "deepgram_nova_3,openai_gpt_4o_mini,minimax_speech_2_6_turbo",
-            ),
             asr_model=os.getenv("ASR_MODEL", "nova-3"),
             llm_model=os.getenv("LLM_MODEL", "gpt-4o-mini"),
             tts_model=os.getenv("TTS_MODEL", "speech_2_6_turbo"),
             tts_voice_id=os.getenv("TTS_VOICE_ID", "English_captivating_female1"),
             agora_area=os.getenv("AGORA_AREA", "NORTH_AMERICA"),
             agent_uid=int(os.getenv("AGORA_AGENT_UID", "123456")),
-            host=os.getenv("HOST", "0.0.0.0"),
-            port=int(os.getenv("PORT", "8443")),
-            tls_cert_path=os.getenv("TLS_CERT_PATH", "certs/dev-cert.pem"),
-            tls_key_path=os.getenv("TLS_KEY_PATH", "certs/dev-key.pem"),
+            host=os.getenv("HOST", "127.0.0.1"),
+            port=int(os.getenv("PORT", "8000")),
             allowed_origins=_csv(os.getenv("ALLOWED_ORIGINS", "*")),
             token_expiry_seconds=int(os.getenv("TOKEN_EXPIRY_SECONDS", "3600")),
             session_ttl_seconds=int(os.getenv("SESSION_TTL_SECONDS", "7200")),

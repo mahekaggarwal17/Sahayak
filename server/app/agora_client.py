@@ -40,13 +40,17 @@ class AgoraClient:
         self.settings = settings
         self._http = http_client or httpx.AsyncClient(timeout=httpx.Timeout(60.0))
         self._owns_http = http_client is None
+        area_name = settings.agora_area.strip().upper()
+        if area_name not in AREA_BY_NAME:
+            supported = ", ".join(sorted(AREA_BY_NAME))
+            raise ValueError(f"Unsupported AGORA_AREA '{settings.agora_area}'. Use one of: {supported}.")
         self._client = AsyncAgora(
-            area=AREA_BY_NAME.get(settings.agora_area.upper(), Area.US),
+            area=AREA_BY_NAME[area_name],
             app_id=settings.agora_app_id,
             app_certificate=settings.agora_app_certificate,
             httpx_client=self._http,
         )
-        self._sessions: dict[str, Any] = {}
+        self._sessions: dict[str, tuple[str, Any]] = {}
 
     def create_user_tokens(self, channel_name: str, rtc_uid: int) -> tuple[str, str, int]:
         token = generate_convo_ai_token(
@@ -120,7 +124,7 @@ class AgoraClient:
             raise AgoraUpstreamError(f"Agora Conversational AI start failed: {exc}") from exc
         if not agent_id:
             raise AgoraUpstreamError("Agora response did not include agent_id.")
-        self._sessions[agent_id] = session
+        self._sessions[agent_id] = (channel_name, session)
         return {
             "agent_id": agent_id,
             "create_ts": int(time.time()),
@@ -144,14 +148,13 @@ class AgoraClient:
             raise AgoraTimeoutError("Agora stop request timed out.") from exc
         except (ApiError, httpx.HTTPError, RuntimeError) as exc:
             raise AgoraUpstreamError(f"Agora agent stop failed: {exc}") from exc
-        finally:
-            self._sessions.pop(agent_id, None)
+        self._sessions.pop(agent_id, None)
 
     def _require_session(self, agent_id: str, channel_name: str) -> Any:
-        session = self._sessions.get(agent_id)
-        if session is None or getattr(session, "channel", channel_name) != channel_name:
+        active = self._sessions.get(agent_id)
+        if active is None or active[0] != channel_name:
             raise AgoraUpstreamError("The Agora agent session is not active in this server process.")
-        return session
+        return active[1]
 
     async def close(self) -> None:
         if self._owns_http:

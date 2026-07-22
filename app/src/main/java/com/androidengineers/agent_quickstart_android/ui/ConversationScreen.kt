@@ -146,7 +146,7 @@ fun VoiceAiAppScreen(
                 .fillMaxSize()
                 .background(MaterialTheme.colorScheme.background),
         ) {
-            BoxWithConstraints(
+            Box(
                 modifier = Modifier
                     .fillMaxSize()
                     .padding(innerPadding)
@@ -307,7 +307,7 @@ private fun SessionSetupCard(
                 ),
                 InfoItemModel(
                     label = "Configuration",
-                    value = if (uiState.isConfigured) "Server configured" else "Server URL and token needed",
+                    value = if (uiState.isConfigured) "Server configured" else "Server URL needed",
                 ),
                 InfoItemModel(
                     label = "Microphone",

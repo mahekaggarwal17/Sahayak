@@ -1,13 +1,13 @@
 # Production Migration Plan: Android Quickstart → Backend-Orchestrated Conversational AI
 
 ## Status
-This document defines the concrete implementation plan to replace on-device agent/token handling with a Python backend service created via Agora CLI/skills, then connect the Android app to that service through a public HTTPS URL.
+The baseline migration is implemented. This document remains as a reference for the architecture and outstanding production hardening. The quickstart intentionally has no application-user authentication; products must add their own authentication before public deployment.
 
 ## 1) Target architecture
 1. The Android app never builds or uses `AGORA_APP_CERTIFICATE`.
 2. The new Python server owns:
 1. Agora App ID/Certificate validation and token generation.
-2. Conversational AI REST orchestration (`join`, `interrupt`, `leave`).
+2. Conversational AI orchestration through the `agora-agents` Python SDK (`start`, `interrupt`, `stop`).
 3. Secure session state (`channel`, `requester_rtc_uid`, `agent_id`, token expiry).
 1. The Android app communicates only with the Python server for bootstrap, join, interrupt, leave, and token refresh.
 1. The server is exposed at a public HTTPS URL on a fixed port and configured in Android `local.properties` after start.
@@ -19,11 +19,10 @@ This document defines the concrete implementation plan to replace on-device agen
 1. `server/app/main.py` (FastAPI entrypoint).
 1. `server/app/routes.py` (API routes).
 1. `server/app/schemas.py` (Pydantic request/response types).
-1. `server/app/agora_client.py` (server-side Agora token + REST calls).
+1. `server/app/agora_client.py` (server-side token generation and Agora SDK sessions).
 1. `server/app/session_store.py` (in-memory first, Redis optional later).
-1. `server/app/security.py` (auth checking and API token validation).
+1. `server/app/security.py` (development rate limiting).
 1. `server/app/config.py` (env parsing, defaults).
-1. `server/app/certs/` (or mount path for local TLS certs).
 1. `server/run.sh` plus `server/README.md`.
 
 ## 3) Use Agora CLI + Agora skills to bring in the Python server
@@ -62,30 +61,24 @@ This document defines the concrete implementation plan to replace on-device agen
 1. Health and build metadata endpoint for smoke checks.
 
 ## 5) Request/response security model
-1. Add a server auth mechanism:
 1. The quickstart client sends no custom bearer token. Product authentication is a separate production concern and must not be confused with Agora RTC/RTM or REST credentials.
-1. Android includes this token on every backend request.
 1. Validate request origin and required fields.
 1. Enforce per-request rate limiting and basic replay protection where practical.
 1. Return explicit, structured errors for:
-1. unauthorized (`401`), bad request (`400`), upstream timeout (`504`), and Agora failures (`502`).
+1. bad request (`400`), rate limit (`429`), upstream timeout (`504`), and Agora failures (`502`).
 
 ## 6) Backend implementation steps
 1. Create configuration module with:
 1. `AGORA_APP_ID`, `AGORA_APP_CERTIFICATE`.
-1. `DEFAULT_PRESET`, `ASR_MODEL`, `LLM_MODEL`, `TTS_MODEL`.
+1. `ASR_MODEL`, `LLM_MODEL`, `TTS_MODEL`, `TTS_VOICE_ID`.
 1. `ALLOWED_ORIGINS` for CORS.
-1. `PORT`, `HOST`, `TLS_CERT_PATH`, `TLS_KEY_PATH`.
+1. `PORT` and `HOST` for the loopback HTTP listener.
 1. Implement token service:
 1. generate RTC token for requester uid/channel.
 1. generate RTM token for string uid.
-1. generate agent REST token with Agora token builder.
+1. let `agora-agents` generate agent REST and RTC credentials from the server-side App ID and Certificate.
 1. Build/return bootstrap and refresh payloads.
-1. Implement Agora REST client:
-1. `POST /v2/projects/{appId}/join`.
-1. `POST /v2/projects/{appId}/agents/{agentId}/interrupt`.
-1. `POST /v2/projects/{appId}/agents/{agentId}/leave`.
-1. Inject header `Authorization: agora token=<agent_rest_token>`.
+1. Implement Agora SDK client with `AsyncAgora`, `Agent`, and async agent sessions.
 1. Session store:
 1. map `channel_name` -> `{agent_id, requester_rtc_uid, requester_rtm_user_id, created_at, agent_state, token_exp`.
 1. cleanup old sessions on TTL.
@@ -96,15 +89,15 @@ This document defines the concrete implementation plan to replace on-device agen
 1. anonymized error details only.
 
 ## 7) HTTPS and public URL requirement
-1. Backend runs HTTPS directly with provided cert paths.
+1. Backend runs loopback HTTP; the selected tunnel provider terminates public HTTPS.
 1. Start command example:  
-`uvicorn app.main:app --host 0.0.0.0 --port 8443 --ssl-keyfile <key> --ssl-certfile <cert>`
+`uvicorn app.main:app --host 127.0.0.1 --port 8000`
 1. Document local public exposure options:
-1. reverse tunnel: `ngrok http 8443 --domain <optional>` with HTTPS URL.
+1. reverse tunnel: `ngrok http http://127.0.0.1:8000` with a public HTTPS URL.
 1. cloud tunnel: Cloudflared or equivalent.
 1. deploy behind HTTPS load balancer.
 1. Ensure Android points to:
-1. `BACKEND_BASE_URL=https://<public-host>:8443`.
+1. `BACKEND_BASE_URL=https://<public-host>`.
 1. `local.properties` key to add after server is started:
 1. `QUICKSTART_SERVER_URL=https://...`.
 1. Confirm CORS allows your Android debug/prod origins.
@@ -115,7 +108,7 @@ This document defines the concrete implementation plan to replace on-device agen
 1. stop requiring `AGORA_APP_CERTIFICATE` in config checks.
 1. Add server config in `app/build.gradle.kts`:
 1. read `QUICKSTART_SERVER_URL`.
-1. Add `BACKEND_BASE_URL`, and `BACKEND_AUTH_TOKEN` to `QuickstartConfig`.
+1. Add the backend base URL to `QuickstartConfig`.
 1. Add backend client API layer:
 1. replace Agora REST calls in `ConversationAgoraApi` with backend calls.
 1. Keep `ConversationRepository` API unchanged where possible for minimal surface change.
@@ -138,7 +131,6 @@ This document defines the concrete implementation plan to replace on-device agen
 1. Update startup/config diagnostics to show:
 1. missing `QUICKSTART_SERVER_URL`.
 1. server health check status.
-1. auth token presence.
 1. Update warning/error copy from:
 1. certificate/token-generation language
 1. to:
@@ -148,10 +140,10 @@ This document defines the concrete implementation plan to replace on-device agen
 ## 10) Deployment and run flow
 1. Start Android project setup:
 1. set `AGORA_APP_ID` in server environment only, not in Android secrets.
-1. keep Android config to server URL + auth token.
-1. Start Python server with HTTPS.
+1. keep Android config to the public server URL.
+1. Start the Python server on loopback HTTP.
 1. expose public URL via tunnel or deployment host.
-1. write URL and token to Android `local.properties`:
+1. write the URL to Android `local.properties`:
 1. `QUICKSTART_SERVER_URL=...`
 1. run Android app and execute start/interrupt/stop scenario.
 
@@ -159,7 +151,7 @@ This document defines the concrete implementation plan to replace on-device agen
 1. Backend unit tests:
 1. bootstrap generates valid non-empty tokens (mocked token builder).
 1. join/interrupt/leave call flow with mocked Agora responses.
-1. unauthorized requests denied.
+1. rate-limited requests return `429`.
 1. token refresh rotates tokens and updates session.
 1. expiry cleanup purges stale sessions.
 1. Android unit/integration tests:
@@ -193,7 +185,7 @@ This document defines the concrete implementation plan to replace on-device agen
 
 ## 13) Rollout order (recommended)
 1. Implement backend scaffold and endpoint contract.
-1. Add local HTTPS and public URL exposure.
+1. Add loopback HTTP and public HTTPS tunnel exposure.
 1. Update Android config + API transport.
 1. Replace start/join/interrupt/leave flow.
 1. Add token refresh path.
@@ -201,7 +193,7 @@ This document defines the concrete implementation plan to replace on-device agen
 1. Hardening pass, docs updates, production smoke test.
 
 ## 14) Definition of done
-1. Android app starts only with `AGORA_APP_ID` on server side and `QUICKSTART_SERVER_URL` + app auth token on client.
+1. Android app starts only with `AGORA_APP_ID` on the server side and `QUICKSTART_SERVER_URL` on the client.
 1. No certificate generation exists in Android runtime.
 1. `join/interrupt/leave/refresh` all go through backend and succeed in staging with public HTTPS URL.
 1. Token expiry renewals handled via backend endpoint and logged.

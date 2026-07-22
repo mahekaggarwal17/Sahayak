@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-PORT="${PORT:-8443}"
+PORT="${PORT:-8000}"
 PROVIDER=""
 
 usage() {
@@ -16,7 +16,7 @@ Providers:
 
 Examples:
   ./server/tunnel.sh --provider ngrok
-  ./server/tunnel.sh --provider cloudflare --port 8443
+  ./server/tunnel.sh --provider cloudflare --port 8000
 EOF
 }
 
@@ -80,23 +80,23 @@ case "$PROVIDER" in
   cloudflare|cloudflared)
     PROVIDER="cloudflare"
     require_command cloudflared
-    exec cloudflared tunnel --url "https://localhost:${PORT}" --no-tls-verify
+    exec cloudflared tunnel --url "http://127.0.0.1:${PORT}"
     ;;
   ngrok)
     require_command ngrok
-    exec ngrok http "https://localhost:${PORT}"
+    exec ngrok http "http://127.0.0.1:${PORT}"
     ;;
   tailscale)
     require_command tailscale
-    exec tailscale funnel "https+insecure://localhost:${PORT}"
+    exec tailscale funnel "http://127.0.0.1:${PORT}"
     ;;
   localtunnel|lt)
     PROVIDER="localtunnel"
     if command -v lt >/dev/null 2>&1; then
-      exec lt --port "$PORT" --local-https --allow-invalid-cert
+      exec lt --port "$PORT"
     fi
     require_command npx
-    exec npx localtunnel --port "$PORT" --local-https --allow-invalid-cert
+    exec npx localtunnel --port "$PORT"
     ;;
   *)
     echo "Unsupported tunnel provider: $PROVIDER" >&2

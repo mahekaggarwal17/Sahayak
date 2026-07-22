@@ -108,20 +108,21 @@ class ConversationViewModel(
                     .takeIf { it > 0 }
                     ?.toString()
                     ?: bootstrap.uid
-                val inviteResult = runCatching {
+                val inviteAttempt = runCatching {
                     repository.inviteAgent(
                         channelName = bootstrap.channel,
                         requesterRtcUid = requesterRtcUid,
                     )
-                }.getOrNull()
+                }
+                val inviteResult = inviteAttempt.getOrNull()
                 activeAgentId = inviteResult?.agentId
                 sessionManager.setActiveAgentId(activeAgentId)
 
-                val warning = if (inviteResult?.agentId == null) {
-                    "The Android client joined the channel, but the server could not start the Agora agent. Check the server logs and Agora project configuration."
-                } else {
-                    null
-                }
+                val warning = inviteAttempt.exceptionOrNull()?.message?.let { message ->
+                    "The Android client joined the channel, but the server could not start the Agora agent: $message"
+                } ?: if (inviteResult?.agentId == null) {
+                    "The Android client joined the channel, but the server returned no Agora agent ID."
+                } else null
 
                 _uiState.update { current ->
                     ConversationUiStateMapper.mergeSession(
