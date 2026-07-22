@@ -15,12 +15,10 @@ import retrofit2.Retrofit
 import retrofit2.converter.gson.GsonConverterFactory
 import retrofit2.http.Body
 import retrofit2.http.GET
-import retrofit2.http.Header
 import retrofit2.http.POST
 
 class ConversationAgoraApi(
     baseUrl: String = QuickstartConfig.backendBaseUrl,
-    private val authToken: String = QuickstartConfig.backendAuthToken,
 ) {
     private val service: ConversationBackendService = Retrofit.Builder()
         .baseUrl(baseUrl.normalizeBaseUrl())
@@ -42,7 +40,6 @@ class ConversationAgoraApi(
 
     suspend fun requestSessionBootstrap(): AgoraTokenBundle {
         val body = service.bootstrap(
-            authorization = authorizationHeader(),
             request = BootstrapRequest(),
         ).requireBody()
         return AgoraTokenBundle(
@@ -62,7 +59,6 @@ class ConversationAgoraApi(
         rtmUserId: String,
     ): RenewalTokens {
         val body = service.refresh(
-            authorization = authorizationHeader(),
             request = RefreshRequest(
                 channelName = channel,
                 requesterRtcUid = rtcUid,
@@ -80,7 +76,6 @@ class ConversationAgoraApi(
         requesterRtcUid: String,
     ): AgentInviteResult {
         val body = service.join(
-            authorization = authorizationHeader(),
             request = JoinRequest(
                 channelName = channelName,
                 requesterRtcUid = requesterRtcUid.toIntOrNull()
@@ -96,20 +91,14 @@ class ConversationAgoraApi(
 
     suspend fun stopConversation(agentId: String, channelName: String) {
         service.leave(
-            authorization = authorizationHeader(),
             request = AgentActionRequest(agentId = agentId, channelName = channelName),
         ).requireSuccess()
     }
 
     suspend fun interruptAgent(agentId: String, channelName: String) {
         service.interrupt(
-            authorization = authorizationHeader(),
             request = AgentActionRequest(agentId = agentId, channelName = channelName),
         ).requireSuccess()
-    }
-
-    private fun authorizationHeader(): String? {
-        return authToken.takeIf { it.isNotBlank() }?.let { "Bearer $it" }
     }
 
     private fun <T> Response<T>.requireBody(): T {
@@ -145,31 +134,26 @@ class ConversationAgoraApi(
 
         @POST("v1/conversation/bootstrap")
         suspend fun bootstrap(
-            @Header("Authorization") authorization: String?,
             @Body request: BootstrapRequest,
         ): Response<BootstrapResponse>
 
         @POST("v1/conversation/join")
         suspend fun join(
-            @Header("Authorization") authorization: String?,
             @Body request: JoinRequest,
         ): Response<JoinResponse>
 
         @POST("v1/conversation/interrupt")
         suspend fun interrupt(
-            @Header("Authorization") authorization: String?,
             @Body request: AgentActionRequest,
         ): Response<ActionResponse>
 
         @POST("v1/conversation/leave")
         suspend fun leave(
-            @Header("Authorization") authorization: String?,
             @Body request: AgentActionRequest,
         ): Response<ActionResponse>
 
         @POST("v1/conversation/refresh")
         suspend fun refresh(
-            @Header("Authorization") authorization: String?,
             @Body request: RefreshRequest,
         ): Response<RefreshResponse>
     }

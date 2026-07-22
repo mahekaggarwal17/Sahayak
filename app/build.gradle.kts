@@ -45,12 +45,6 @@ android {
             "QUICKSTART_SERVER_URL",
             quote(localOrEnv("QUICKSTART_SERVER_URL"))
         )
-        buildConfigField(
-            "String",
-            "QUICKSTART_SERVER_TOKEN",
-            quote(localOrEnv("QUICKSTART_SERVER_TOKEN"))
-        )
-
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
 
