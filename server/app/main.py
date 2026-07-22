@@ -43,7 +43,7 @@ def create_app(
         allow_origins=list(resolved_settings.allowed_origins),
         allow_credentials=resolved_settings.allowed_origins != ("*",),
         allow_methods=["GET", "POST"],
-        allow_headers=["Authorization", "Content-Type", "X-Request-ID"],
+        allow_headers=["Content-Type", "X-Request-ID"],
     )
 
     @application.middleware("http")

@@ -1,13 +1,10 @@
 from __future__ import annotations
 
-import hmac
 import time
 from collections import defaultdict, deque
 from threading import Lock
 
 from fastapi import HTTPException, Request, status
-from fastapi.security import HTTPBearer
-
 from .config import Settings
 
 
@@ -31,25 +28,13 @@ class RateLimiter:
             events.append(now)
 
 
-def build_authorizer(settings: Settings):
-    bearer = HTTPBearer(auto_error=False)
+def build_rate_limiter(settings: Settings):
     limiter = RateLimiter(settings.requests_per_minute)
 
-    async def authorize(
+    async def limit(
         request: Request,
     ) -> None:
-        credentials = await bearer(request)
-        if (
-            credentials is None
-            or credentials.scheme.lower() != "bearer"
-            or not hmac.compare_digest(credentials.credentials, settings.quickstart_app_token)
-        ):
-            raise HTTPException(
-                status_code=status.HTTP_401_UNAUTHORIZED,
-                detail="Invalid or missing bearer token.",
-                headers={"WWW-Authenticate": "Bearer"},
-            )
         client_host = request.client.host if request.client else "unknown"
         limiter.check(client_host)
 
-    return authorize
+    return limit

@@ -20,14 +20,14 @@ from .schemas import (
     RefreshRequest,
     RefreshResponse,
 )
-from .security import build_authorizer
+from .security import build_rate_limiter
 from .session_store import SessionRecord, SessionStore
 
 
 def create_router(settings: Settings, store: SessionStore, agora: AgoraClient) -> APIRouter:
     router = APIRouter()
-    authorize = build_authorizer(settings)
-    protected = [Depends(authorize)]
+    rate_limit = build_rate_limiter(settings)
+    throttled = [Depends(rate_limit)]
 
     @router.get("/health", response_model=HealthResponse)
     async def health() -> HealthResponse:
@@ -41,7 +41,7 @@ def create_router(settings: Settings, store: SessionStore, agora: AgoraClient) -
     @router.post(
         "/v1/conversation/bootstrap",
         response_model=BootstrapResponse,
-        dependencies=protected,
+        dependencies=throttled,
     )
     async def bootstrap(body: BootstrapRequest) -> BootstrapResponse:
         rtc_uid = body.requester_rtc_uid or random.randint(100_000, 899_999)
@@ -76,7 +76,7 @@ def create_router(settings: Settings, store: SessionStore, agora: AgoraClient) -
     @router.post(
         "/v1/conversation/join",
         response_model=JoinResponse,
-        dependencies=protected,
+        dependencies=throttled,
     )
     async def join(body: JoinRequest) -> JoinResponse:
         async with store.join_guard(body.channel_name):
@@ -112,7 +112,7 @@ def create_router(settings: Settings, store: SessionStore, agora: AgoraClient) -
     @router.post(
         "/v1/conversation/interrupt",
         response_model=ActionResponse,
-        dependencies=protected,
+        dependencies=throttled,
     )
     async def interrupt(body: AgentActionRequest) -> ActionResponse:
         await require_agent(store, body)
@@ -122,7 +122,7 @@ def create_router(settings: Settings, store: SessionStore, agora: AgoraClient) -
     @router.post(
         "/v1/conversation/leave",
         response_model=ActionResponse,
-        dependencies=protected,
+        dependencies=throttled,
     )
     async def leave(body: AgentActionRequest) -> ActionResponse:
         await require_agent(store, body)
@@ -133,7 +133,7 @@ def create_router(settings: Settings, store: SessionStore, agora: AgoraClient) -
     @router.post(
         "/v1/conversation/refresh",
         response_model=RefreshResponse,
-        dependencies=protected,
+        dependencies=throttled,
     )
     async def refresh(body: RefreshRequest) -> RefreshResponse:
         record = await require_session(store, body.channel_name)

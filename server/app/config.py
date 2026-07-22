@@ -18,8 +18,6 @@ def _csv(value: str) -> tuple[str, ...]:
 class Settings:
     agora_app_id: str
     agora_app_certificate: str
-    quickstart_app_token: str
-    convoai_base_url: str = "https://api.agora.io/api/conversational-ai-agent/v2/projects"
     default_preset: str = "deepgram_nova_3,openai_gpt_4o_mini,minimax_speech_2_6_turbo"
     asr_model: str = "nova-3"
     llm_model: str = "gpt-4o-mini"
@@ -44,11 +42,6 @@ class Settings:
         return cls(
             agora_app_id=os.getenv("AGORA_APP_ID", "").strip(),
             agora_app_certificate=os.getenv("AGORA_APP_CERTIFICATE", "").strip(),
-            quickstart_app_token=os.getenv("QUICKSTART_APP_TOKEN", "").strip(),
-            convoai_base_url=os.getenv(
-                "AGORA_CONVOAI_BASE_URL",
-                "https://api.agora.io/api/conversational-ai-agent/v2/projects",
-            ).rstrip("/"),
             default_preset=os.getenv(
                 "DEFAULT_PRESET",
                 "deepgram_nova_3,openai_gpt_4o_mini,minimax_speech_2_6_turbo",
@@ -76,7 +69,6 @@ class Settings:
             for name, value in (
                 ("AGORA_APP_ID", self.agora_app_id),
                 ("AGORA_APP_CERTIFICATE", self.agora_app_certificate),
-                ("QUICKSTART_APP_TOKEN", self.quickstart_app_token),
             )
             if not value
         ]

@@ -29,23 +29,20 @@ def settings() -> Settings:
     return Settings(
         agora_app_id="app-id",
         agora_app_certificate="certificate",
-        quickstart_app_token="test-token",
     )
 
 
-def test_health_is_public_and_protected_routes_require_auth():
+def test_health_and_bootstrap_are_available_without_client_auth():
     with TestClient(create_app(settings(), FakeAgoraClient())) as client:
         assert client.get("/health").status_code == 200
-        assert client.post("/v1/conversation/bootstrap", json={}).status_code == 401
+        assert client.post("/v1/conversation/bootstrap", json={}).status_code == 200
 
 
 def test_full_conversation_contract_and_idempotent_join():
     fake = FakeAgoraClient()
-    headers = {"Authorization": "Bearer test-token"}
     with TestClient(create_app(settings(), fake)) as client:
         bootstrap = client.post(
             "/v1/conversation/bootstrap",
-            headers=headers,
             json={"requester_rtc_uid": 42, "requester_rtm_user_id": "42"},
         )
         assert bootstrap.status_code == 200
@@ -54,15 +51,14 @@ def test_full_conversation_contract_and_idempotent_join():
         assert session["rtc_token"].startswith("rtc-")
 
         join_body = {"channel_name": session["channel_name"], "requester_rtc_uid": 42}
-        first_join = client.post("/v1/conversation/join", headers=headers, json=join_body)
-        second_join = client.post("/v1/conversation/join", headers=headers, json=join_body)
+        first_join = client.post("/v1/conversation/join", json=join_body)
+        second_join = client.post("/v1/conversation/join", json=join_body)
         assert first_join.json()["agent_id"] == "agent-1"
         assert second_join.json()["agent_id"] == "agent-1"
         assert fake.join_calls == 1
 
         refresh = client.post(
             "/v1/conversation/refresh",
-            headers=headers,
             json={
                 "channel_name": session["channel_name"],
                 "requester_rtc_uid": 42,
@@ -73,9 +69,9 @@ def test_full_conversation_contract_and_idempotent_join():
         assert refresh.json()["rtm_token"] == "rtm-42"
 
         action = {"channel_name": session["channel_name"], "agent_id": "agent-1"}
-        assert client.post("/v1/conversation/interrupt", headers=headers, json=action).status_code == 200
-        assert client.post("/v1/conversation/leave", headers=headers, json=action).status_code == 200
-        assert client.post("/v1/conversation/refresh", headers=headers, json={
+        assert client.post("/v1/conversation/interrupt", json=action).status_code == 200
+        assert client.post("/v1/conversation/leave", json=action).status_code == 200
+        assert client.post("/v1/conversation/refresh", json={
             "channel_name": session["channel_name"],
             "requester_rtc_uid": 42,
             "requester_rtm_user_id": "42",
