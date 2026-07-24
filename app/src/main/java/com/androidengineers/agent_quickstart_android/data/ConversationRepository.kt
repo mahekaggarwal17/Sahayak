@@ -2,12 +2,17 @@ package com.androidengineers.agent_quickstart_android.data
 
 import com.androidengineers.agent_quickstart_android.model.AgentInviteResult
 import com.androidengineers.agent_quickstart_android.model.AgoraTokenBundle
+import com.androidengineers.agent_quickstart_android.model.BackendHealthResult
 import com.androidengineers.agent_quickstart_android.model.RenewalTokens
 
 class ConversationRepository(
     private val api: ConversationAgoraApi = ConversationAgoraApi(),
 ) {
-    fun requestSessionBootstrap(): AgoraTokenBundle {
+    suspend fun checkHealth(): BackendHealthResult {
+        return api.checkHealth()
+    }
+
+    suspend fun requestSessionBootstrap(): AgoraTokenBundle {
         return api.requestSessionBootstrap()
     }
 

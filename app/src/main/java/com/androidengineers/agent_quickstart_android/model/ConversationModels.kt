@@ -51,11 +51,18 @@ data class SessionIssue(
 )
 
 data class AgoraTokenBundle(
+    val appId: String,
+    val agentRtcUid: Int,
     val rtcToken: String,
     val rtmToken: String,
     val uid: String,
     val channel: String,
     val rtmUserId: String,
+)
+
+data class BackendHealthResult(
+    val status: String,
+    val version: String,
 )
 
 data class AgentInviteResult(
@@ -115,5 +122,7 @@ data class ConversationUiState(
     val liveTranscript: TranscriptTurn? = null,
     val warningMessage: String? = null,
     val errorMessage: String? = null,
+    val backendLatencyMs: Long? = null,
+    val lastServerResponse: String? = null,
     val issues: List<SessionIssue> = emptyList(),
 )

@@ -146,7 +146,7 @@ fun VoiceAiAppScreen(
                 .fillMaxSize()
                 .background(MaterialTheme.colorScheme.background),
         ) {
-            BoxWithConstraints(
+            Box(
                 modifier = Modifier
                     .fillMaxSize()
                     .padding(innerPadding)
@@ -246,7 +246,7 @@ private fun PreSessionScreen(
         item {
             HeroIntroCard(
                 title = "Start a voice session",
-                subtitle = "Generate local demo credentials, join the Agora channel, start the cloud agent, and stream live transcript events in one Android flow.",
+                subtitle = "Connect through the Python quickstart server, join the Agora channel, start the cloud agent, and stream live transcript events.",
             )
         }
 
@@ -276,8 +276,8 @@ private fun SessionSetupCard(
     ) {
         LabeledIconText(
             icon = Icons.Outlined.Link,
-            label = "Agora REST direct mode",
-            value = "This demo generates RTC, RTM, and agent tokens locally, then calls Agora REST join, interrupt, and leave directly from Android. Demo-only: your App Certificate is packaged into the app.",
+            label = "Backend-managed session",
+            value = "The Python server owns Agora credentials, token generation, and agent lifecycle calls. Android receives only short-lived session tokens.",
         )
 
         LabeledIconText(
@@ -307,7 +307,7 @@ private fun SessionSetupCard(
                 ),
                 InfoItemModel(
                     label = "Configuration",
-                    value = if (uiState.isConfigured) "Ready to start" else "local.properties needed",
+                    value = if (uiState.isConfigured) "Server configured" else "Server URL needed",
                 ),
                 InfoItemModel(
                     label = "Microphone",
@@ -853,7 +853,7 @@ private fun DismissibleMessageCard(
 private fun preSessionStatusChips(uiState: ConversationUiState): List<StatusChipModel> {
     return listOf(
         StatusChipModel(
-            label = if (uiState.isConfigured) "Agora REST ready" else "Direct credentials needed",
+            label = if (uiState.isConfigured) "Backend ready" else "Server config needed",
             highlighted = uiState.isConfigured,
             accent = MaterialTheme.colorScheme.primary,
         ),
@@ -882,7 +882,7 @@ private fun connectedStatusChips(uiState: ConversationUiState): List<StatusChipM
 
     return listOf(
         StatusChipModel(
-            label = "Agora REST active",
+            label = "Backend active",
             highlighted = true,
             accent = MaterialTheme.colorScheme.primary,
         ),
@@ -909,6 +909,8 @@ private fun connectedInfoItems(uiState: ConversationUiState): List<InfoItemModel
         InfoItemModel("Channel", uiState.channelName ?: "Joining..."),
         InfoItemModel("Local UID", uiState.localUid ?: "Pending"),
         InfoItemModel("RTM status", uiState.rtmConnectionLabel),
+        InfoItemModel("Backend latency", uiState.backendLatencyMs?.let { "$it ms" } ?: "Pending"),
+        InfoItemModel("Last server response", uiState.lastServerResponse ?: "Pending"),
     )
 }
 

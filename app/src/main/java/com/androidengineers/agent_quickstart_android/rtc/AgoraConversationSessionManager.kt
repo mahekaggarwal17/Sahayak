@@ -3,7 +3,6 @@ package com.androidengineers.agent_quickstart_android.rtc
 import android.content.Context
 import android.util.Log
 import com.androidengineers.agent_quickstart_android.audio.AudioSessionManager
-import com.androidengineers.agent_quickstart_android.config.QuickstartConfig
 import com.androidengineers.agent_quickstart_android.data.ConversationRepository
 import com.androidengineers.agent_quickstart_android.model.AgentConversationState
 import com.androidengineers.agent_quickstart_android.model.AgoraTokenBundle
@@ -71,6 +70,7 @@ class AgoraConversationSessionManager(
     private var rtmClient: RtmClient? = null
     private var currentChannel: String? = null
     private var localRtcUid: Int = 0
+    private var currentAgentRtcUid: Int = 0
     private var micRequestedEnabled: Boolean = true
     private var renewTokensProvider: (suspend (String, Int, String) -> RenewalTokens)? = null
     private var joinDeferred: CompletableDeferred<Int>? = null
@@ -105,6 +105,7 @@ class AgoraConversationSessionManager(
     ) {
         disconnect(resetSnapshot = true)
         currentChannel = bootstrap.channel
+        currentAgentRtcUid = bootstrap.agentRtcUid
         renewTokensProvider = onRenewTokens
         transcriptAssembler.reset()
         micRequestedEnabled = true
@@ -121,8 +122,9 @@ class AgoraConversationSessionManager(
         )
 
         try {
-            ensureRtcEngine()
+            ensureRtcEngine(bootstrap.appId)
             ensureRtmClient(
+                appId = bootstrap.appId,
                 token = bootstrap.rtmToken,
                 channel = bootstrap.channel,
                 userId = bootstrap.rtmUserId,
@@ -142,6 +144,7 @@ class AgoraConversationSessionManager(
         transcriptAssembler.reset()
         renewTokensProvider = null
         localRtcUid = 0
+        currentAgentRtcUid = 0
         micRequestedEnabled = true
         activeAgentId = null
         currentRtmUserId = null
@@ -191,14 +194,14 @@ class AgoraConversationSessionManager(
         activeAgentId = agentId
     }
 
-    private suspend fun ensureRtcEngine() = withContext(Dispatchers.Main.immediate) {
+    private suspend fun ensureRtcEngine(appId: String) = withContext(Dispatchers.Main.immediate) {
         if (rtcEngine != null) {
             return@withContext
         }
 
         val config = RtcEngineConfig().apply {
             mContext = appContext
-            mAppId = QuickstartConfig.agoraAppId
+            mAppId = appId
             mEventHandler = rtcEventHandler
             mChannelProfile = Constants.CHANNEL_PROFILE_COMMUNICATION
             mAudioScenario = Constants.AUDIO_SCENARIO_CHORUS
@@ -229,12 +232,13 @@ class AgoraConversationSessionManager(
     }
 
     private suspend fun ensureRtmClient(
+        appId: String,
         token: String,
         channel: String,
         userId: String,
     ) {
         val client = RtmClient.create(
-            RtmConfig.Builder(QuickstartConfig.agoraAppId, userId)
+            RtmConfig.Builder(appId, userId)
                 .useStringUserId(true)
                 .build()
         )
@@ -424,9 +428,9 @@ class AgoraConversationSessionManager(
                     }
                 } catch (error: Throwable) {
                     addIssue(
-                        source = "token",
+                        source = "backend",
                         code = "renew-token",
-                        message = error.message ?: "Failed to renew Agora tokens.",
+                        message = error.message ?: "Failed to renew tokens through the quickstart server.",
                     )
                 }
             }
@@ -644,13 +648,13 @@ class AgoraConversationSessionManager(
         }
 
         override fun onUserJoined(uid: Int, elapsed: Int) {
-            if (uid == QuickstartConfig.agentUid) {
+            if (uid == currentAgentRtcUid) {
                 updateSnapshot { it.copy(isAgentRtcConnected = true) }
             }
         }
 
         override fun onUserOffline(uid: Int, reason: Int) {
-            if (uid == QuickstartConfig.agentUid) {
+            if (uid == currentAgentRtcUid) {
                 updateSnapshot { it.copy(isAgentRtcConnected = false) }
             }
         }

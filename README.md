@@ -2,17 +2,29 @@
 
 This repository is a template-style Android starter for building a Voice AI app with Agora Conversational AI.
 
-It gives you a single Kotlin + Jetpack Compose app that:
+It gives you a Kotlin + Jetpack Compose app backed by a small Python service that:
 
 - joins an Agora RTC channel
-- starts an Agora Conversational AI agent
+- starts and manages an Agora Conversational AI agent through the backend
 - listens for transcript, agent state, and pipeline metrics over RTM
 - lets the user talk, mute, interrupt, and end the session
-- keeps the demo in one Android project so it is easy to understand and customize
+- keeps the App Certificate and token generation off the Android device
+
+> [!NOTE]
+> This quickstart requires the included Python backend. Local mobile testing uses a temporary public HTTPS tunnel so the Android device can reach the development server.
+
+## Prerequisites
+
+- Android Studio with JDK 17 or newer
+- Python 3.10 or newer
+- Bash for the scripts in `server/`
+- An Android device or emulator with microphone support
+- An Agora account with access to Conversational AI
+- A development tunnel provider; the included helper supports Cloudflare Tunnel, ngrok, Tailscale Funnel, and LocalTunnel
+
+The commands below assume a macOS or Linux shell. On Windows, run the backend scripts from WSL or an equivalent Bash environment.
 
 ## Quick Start
-
-The recommended path is to let the Agora CLI clone the quickstart, bind an Agora project, and write Android credentials to `local.properties`.
 
 ### 1. Install the Agora CLI and sign in
 
@@ -24,28 +36,95 @@ agora --help
 agora login
 ```
 
-### 2. Scaffold and bind the Android quickstart
+### 2. Get the quickstart
 
-Replace `my-android-demo` with your app folder name:
+The recommended path lets the CLI clone the template and bind an Agora project. Replace `my-android-demo` with your app folder name:
 
 ```bash
 agora init my-android-demo --template android
 cd my-android-demo
 ```
 
-`agora init` clones this starter, selects or creates an Agora project, writes `.agora/project.json`, and writes Agora credentials to root `local.properties`.
+`agora init` selects or creates an Agora project and records the project binding in `.agora/project.json`.
 
-### 3. Build the app
+To work from an existing clone instead:
+
+```bash
+git clone https://github.com/AgoraIO-Conversational-AI/agent-quickstart-android.git
+cd agent-quickstart-android
+```
+
+If you use an existing clone, you will select the Agora project when you configure the server in the next step.
+
+### 3. Configure and run the Python server
+
+```bash
+python3 -m venv server/.venv
+source server/.venv/bin/activate
+pip install -r server/requirements-dev.txt
+cp -n server/.env.example server/.env.local
+agora project env write server/.env.local --template standard
+./server/run.sh
+```
+
+The command above uses the project selected by `agora init`. For an existing clone, select the project explicitly instead:
+
+```bash
+agora project env write server/.env.local \
+  --project <project-name-or-id> \
+  --template standard
+./server/run.sh
+```
+
+The server listens on `http://127.0.0.1:8000` and keeps `AGORA_APP_CERTIFICATE` off the Android device. Leave this terminal running. The local endpoint uses HTTP; the selected tunnel provider supplies the public HTTPS endpoint required by Android.
+
+### 4. Create a temporary public HTTPS URL
+
+In another terminal, run:
+
+```bash
+./server/tunnel.sh --provider ngrok
+```
+
+Choose `cloudflare`, `ngrok`, `tailscale`, or `localtunnel` with `--provider`. Keep the tunnel running and copy its generated `https://` URL.
+
+Verify that the public endpoint reaches the Python server:
+
+```bash
+curl https://your-public-host/health
+```
+
+The response must be backend health JSON, not a tunnel-provider login or warning page. See [Local HTTPS tunnels](docs/local-tunnels.md) for explicit ngrok, Cloudflare Tunnel, Tailscale Funnel, and LocalTunnel commands.
+
+### 5. Configure Android
+
+Write the public server URL to root `local.properties`:
+
+```bash
+./server/configure-android.sh https://your-public-host
+```
+
+The script writes only this client value:
+
+```properties
+QUICKSTART_SERVER_URL=https://your-public-host
+```
+
+Do not put `AGORA_APP_CERTIFICATE` in `local.properties`.
+
+### 6. Build the app
 
 ```bash
 JAVA_HOME="/Applications/Android Studio.app/Contents/jbr/Contents/Home" ./gradlew :app:assembleDebug
 ```
 
-### 4. Run it
+If your shell already uses JDK 17 or newer, `./gradlew :app:assembleDebug` is sufficient.
+
+### 7. Run it
 
 Open the project in Android Studio, or run it from the command line, then launch it on a device or emulator.
 
-Tap **Start voice session**, allow microphone permission, speak to the agent, and watch transcripts appear in realtime.
+Tap **Start voice session**, allow microphone permission, speak to the agent, and watch transcripts appear in real time.
 
 If the agent does not join or transcripts do not appear, run:
 
@@ -53,27 +132,7 @@ If the agent does not join or transcripts do not appear, run:
 agora project doctor --deep
 ```
 
-## Working From This Repository
-
-Use this path if you already cloned this repo, for example to contribute or fork:
-
-```bash
-git clone https://github.com/AgoraIO-Conversational-AI/agent-quickstart-android.git
-cd agent-quickstart-android
-agora login
-agora quickstart env write . --template android --project <your-project>
-agora project doctor --deep
-JAVA_HOME="/Applications/Android Studio.app/Contents/jbr/Contents/Home" ./gradlew :app:assembleDebug
-```
-
-The env command writes these values to root `local.properties`:
-
-```properties
-AGORA_APP_ID=...
-AGORA_APP_CERTIFICATE=...
-```
-
-For manual setup, optional config, and production notes, see [docs/setup.md](docs/setup.md).
+If the temporary tunnel URL changes, run `server/configure-android.sh` again, rebuild, and reinstall the app. For manual setup, optional configuration, and production notes, see [docs/setup.md](docs/setup.md).
 
 ## What To Read First
 
@@ -83,7 +142,7 @@ If you are using this as a template, start here:
 - [ConversationViewModel.kt](app/src/main/java/com/androidengineers/agent_quickstart_android/ui/ConversationViewModel.kt)
 - [AgoraConversationSessionManager.kt](app/src/main/java/com/androidengineers/agent_quickstart_android/rtc/AgoraConversationSessionManager.kt)
 - [ConversationAgoraApi.kt](app/src/main/java/com/androidengineers/agent_quickstart_android/data/ConversationAgoraApi.kt)
-- [AgoraLocalTokenFactory.kt](app/src/main/java/com/androidengineers/agent_quickstart_android/data/AgoraLocalTokenFactory.kt)
+- [Python backend](server/app/main.py)
 
 Those files show the full flow from UI action to Agora session setup.
 
@@ -93,10 +152,16 @@ Most teams will customize these pieces first:
 
 1. `ConversationScreen.kt` for UI layout, branding, and session cards
 2. `ConversationViewModel.kt` for app state, button actions, and session orchestration
-3. `ConversationAgoraApi.kt` for agent presets, base URL, geofence, or startup behavior
-4. `AgoraLocalTokenFactory.kt` when replacing demo-only local tokens with your backend token flow
+3. `AgoraConversationSessionManager.kt` for RTC, RTM, and media behavior
+4. `server/app/agora_client.py` for agent presets, geofence, and model configuration
 
 ## Build And Test
+
+Run the Python server tests:
+
+```bash
+server/.venv/bin/python -m pytest server/tests
+```
 
 Compile Kotlin:
 
@@ -118,13 +183,13 @@ JAVA_HOME="/Applications/Android Studio.app/Contents/jbr/Contents/Home" ./gradle
 
 ## Docs
 
-- [Setup](docs/setup.md): prerequisites, CLI setup, manual setup, required config, and production security notes
+- [Setup](docs/setup.md): CLI, server, tunnel, and Android configuration
+- [Local HTTPS tunnels](docs/local-tunnels.md): expose the development server to a physical device
+- [Backend runbook](docs/backend-runbook.md): local server, public tunnel, API contract, deployment, and smoke checks
 - [Architecture](docs/architecture.md): app structure, code map, session lifecycle, and state flow
 - [Troubleshooting](docs/troubleshooting.md): common setup, agent, RTM, metrics, and microphone issues
 - [Agent coding guidance](docs/agent-guidance.md): Agora CLI skills and guidance for AI coding agents
 
 ## Security Note
 
-This quickstart is intentionally convenient, not production-safe as-is.
-
-Because `AGORA_APP_CERTIFICATE` is packaged into the app for local token generation, anyone with the built APK can extract it and use your Agora project. Before shipping publicly, move token generation and REST `join`, `interrupt`, and `leave` calls to your backend.
+`AGORA_APP_CERTIFICATE` stays in `server/.env.local` and is never compiled into Android. The Python server generates the Android user's RTC/RTM token and uses the Agora Python SDK to start, interrupt, and stop the agent. A development tunnel URL is public while the tunnel is running, so stop the tunnel when testing is complete and add appropriate application authentication before adapting this demo for production.
