@@ -166,7 +166,6 @@ class AgoraConversationSessionManager(
             runCatching { client.logout(noopRtmCallback()) }
         }
         rtmClient = null
-        runCatching { RtmClient.release() }
 
         rtcEngine?.let { engine ->
             runCatching { engine.leaveChannel() }
@@ -255,7 +254,6 @@ class AgoraConversationSessionManager(
         } catch (error: Throwable) {
             runCatching { client.removeEventListener(rtmEventListener) }
             runCatching { client.logout(noopRtmCallback()) }
-            runCatching { RtmClient.release() }
             throw error
         }
     }
