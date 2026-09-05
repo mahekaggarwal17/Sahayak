@@ -58,6 +58,18 @@ const statTotalDuration = document.getElementById("statTotalDuration");
 const storageSearchInput = document.getElementById("storageSearchInput");
 const recordingsList = document.getElementById("recordingsList");
 
+// ─── CITIZEN PIN (single unique PIN per user, persisted in localStorage) ────
+function getCitizenPin() {
+    let pin = localStorage.getItem('sahayak_citizen_pin');
+    if (!pin) {
+        // Generate a new SAH-XXXX pin once and store it permanently
+        const digits = Math.floor(1000 + Math.random() * 9000);
+        pin = `SAH-${digits}`;
+        localStorage.setItem('sahayak_citizen_pin', pin);
+    }
+    return pin;
+}
+
 // Initialize on page load
 document.addEventListener("DOMContentLoaded", () => {
     loadRecordings();
@@ -1019,7 +1031,7 @@ function toggleFaq(btn) {
 
 // ─── MY TICKETS TAB ──────────────────────────────────────────
 // Seed data — in production these would come from the backend.
-// Additional tickets can be pushed here dynamically after each call.
+// All tickets share the same single Citizen PIN for the current user.
 const SEED_TICKETS = [
     {
         id: "SHK-CIVIC-1042",
@@ -1030,8 +1042,7 @@ const SEED_TICKETS = [
         address: "Sector 12, Block B, Near Main Gate, New Delhi – 110001",
         department: "Nagar Nigam Sanitation Dept.",
         raised: "04 Sep 2026, 10:32 AM",
-        updated: "05 Sep 2026, 08:15 AM",
-        pin: "SAH-4829"
+        updated: "05 Sep 2026, 08:15 AM"
     },
     {
         id: "SHK-CIVIC-1038",
@@ -1042,8 +1053,7 @@ const SEED_TICKETS = [
         address: "MG Road, Bus Stand Area, Connaught Place, New Delhi – 110020",
         department: "Municipal Electrical Dept.",
         raised: "01 Sep 2026, 07:45 PM",
-        updated: "03 Sep 2026, 04:00 PM",
-        pin: "SAH-3317"
+        updated: "03 Sep 2026, 04:00 PM"
     },
     {
         id: "SHK-CIVIC-1055",
@@ -1054,15 +1064,16 @@ const SEED_TICKETS = [
         address: "Ring Road, Near Lajpat Nagar Flyover, New Delhi – 110024",
         department: "PWD Roads Division",
         raised: "05 Sep 2026, 09:10 AM",
-        updated: "05 Sep 2026, 09:10 AM",
-        pin: "SAH-7761"
+        updated: "05 Sep 2026, 09:10 AM"
     }
 ];
 
 function loadTickets() {
-    // Merge seed data with any dynamically created tickets stored in sessionStorage
+    // Merge seed data with any dynamically created tickets stored in sessionStorage.
+    // Each ticket receives the user's single Citizen PIN (generated once per device).
+    const userPin = getCitizenPin();
     const dynamic = JSON.parse(sessionStorage.getItem('sahayak_tickets') || '[]');
-    const all = [...dynamic, ...SEED_TICKETS];
+    const all = [...dynamic, ...SEED_TICKETS].map(t => ({ ...t, pin: userPin }));
     renderTickets(all);
 }
 
@@ -1125,7 +1136,7 @@ function renderTickets(tickets) {
                         <span id="pin-eye-${i}">👁</span>
                     </button>
                 </div>
-                <span class="pin-hint">Issued at time of filing. Keep this safe.</span>
+                <span class="pin-hint">Your single Citizen PIN — same for all tickets. If you lose your phone, visit the nearest Municipal Ward Office / Jan Seva Kendra with a valid ID to recover it.</span>
             </div>
         </div>`;
     }).join('');
