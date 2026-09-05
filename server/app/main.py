@@ -4,9 +4,12 @@ import logging
 import time
 import uuid
 from contextlib import asynccontextmanager
+from pathlib import Path
 
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import FileResponse
+from fastapi.staticfiles import StaticFiles
 
 from .agora_client import AgoraClient
 from .config import Settings
@@ -65,6 +68,15 @@ def create_app(
         return response
 
     application.include_router(create_router(resolved_settings, store, agora))
+
+    static_dir = Path(__file__).resolve().parents[1] / "static"
+    if static_dir.exists():
+        application.mount("/static", StaticFiles(directory=str(static_dir)), name="static")
+
+        @application.get("/", include_in_schema=False)
+        async def serve_index():
+            return FileResponse(static_dir / "index.html")
+
     return application
 
 

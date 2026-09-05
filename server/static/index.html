@@ -1,0 +1,228 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SAHAYAK (सहायक) - Multilingual Public Utility Voice AI</title>
+    <meta name="description" content="SAHAYAK is a multilingual public utility assistance voice agent for Water, Electricity, Gas, and Complaints in Hindi, English, and Hinglish.">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Outfit:wght@500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/static/styles.css">
+    <!-- Agora RTC Web SDK -->
+    <script src="https://download.agora.io/sdk/release/AgoraRTC_N-4.23.0.js"></script>
+</head>
+<body>
+    <div class="background-glow glow-1"></div>
+    <div class="background-glow glow-2"></div>
+
+    <div class="app-container">
+        <!-- Header -->
+        <header class="navbar">
+            <div class="brand">
+                <div class="brand-badge">
+                    <span class="pulse-dot"></span>
+                    <span>VOICE AI</span>
+                </div>
+                <div class="brand-text">
+                    <h1>SAHAYAK <span class="hindi-title">(सहायक)</span></h1>
+                    <p class="subtitle">Multilingual Public Utility Voice Agent</p>
+                </div>
+            </div>
+            <div class="header-badges">
+                <span class="badge badge-accent">Agora AI Cloud</span>
+                <span class="badge badge-lang">हिन्दी • English • Hinglish</span>
+                <div id="connectionStatus" class="status-indicator status-idle">
+                    <span class="status-dot"></span>
+                    <span class="status-text">Ready to Connect</span>
+                </div>
+            </div>
+        </header>
+
+        <!-- Main Layout -->
+        <main class="main-grid">
+            <!-- Left Panel: Interactive Voice Hub -->
+            <section class="panel voice-hub">
+                <div class="panel-header">
+                    <h2>Live Voice Session</h2>
+                    <span class="version-tag">v1.0 Public Utility KB</span>
+                </div>
+
+                <!-- Central Interactive Voice Orb -->
+                <div class="orb-container">
+                    <div class="orb-ring ring-3"></div>
+                    <div class="orb-ring ring-2"></div>
+                    <div class="orb-ring ring-1"></div>
+                    <div id="voiceOrb" class="voice-orb idle">
+                        <div class="orb-core">
+                            <svg id="micIcon" class="orb-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/>
+                                <path d="M19 10v2a7 7 0 0 1-14 0v-2"/>
+                                <line x1="12" y1="19" x2="12" y2="22"/>
+                            </svg>
+                        </div>
+                    </div>
+                    <div class="orb-label">
+                        <span id="agentStateLabel">Click Start to Speak</span>
+                        <div id="audioWaveform" class="waveform hidden">
+                            <span></span><span></span><span></span><span></span><span></span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Call Controls -->
+                <div class="controls-bar">
+                    <button id="btnStart" class="btn btn-primary" onclick="toggleCall()">
+                        <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/>
+                        </svg>
+                        <span id="btnStartText">Start Voice Session</span>
+                    </button>
+
+                    <button id="btnMute" class="btn btn-secondary" onclick="toggleMute()" disabled title="Mute/Unmute Mic">
+                        <svg id="muteIcon" class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/>
+                            <path d="M19 10v2a7 7 0 0 1-14 0v-2"/>
+                            <line x1="12" y1="19" x2="12" y2="22"/>
+                        </svg>
+                        <span id="btnMuteText">Mute</span>
+                    </button>
+
+                    <button id="btnInterrupt" class="btn btn-secondary" onclick="interruptAgent()" disabled title="Interrupt Agent">
+                        <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <circle cx="12" cy="12" r="10"/>
+                            <rect x="9" y="9" width="6" height="6"/>
+                        </svg>
+                        <span>Interrupt</span>
+                    </button>
+                </div>
+
+                <!-- Emergency Banner -->
+                <div id="emergencyBanner" class="alert-banner hidden">
+                    <span class="alert-icon">⚠️</span>
+                    <div class="alert-content">
+                        <strong>EMERGENCY GAS/FIRE PROTOCOL:</strong>
+                        <span>Immediately evacuate to open air. Do NOT operate switches or flames. Contact local emergency (112) or Gas Helpline (1906).</span>
+                    </div>
+                </div>
+
+                <!-- Sample Prompts / Quick Test Chips -->
+                <div class="quick-prompts">
+                    <span class="prompts-title">Try saying or tap to practice:</span>
+                    <div class="chips-grid">
+                        <button class="chip" onclick="simulatePrompt('Kal raat se paani nahi aa raha hai.')">
+                            💧 "Kal se paani nahi aa raha"
+                        </button>
+                        <button class="chip" onclick="simulatePrompt('Bijli ka bill bahut high aa gaya hai.')">
+                            ⚡ "Bijli ka bill bahut high aaya"
+                        </button>
+                        <button class="chip" onclick="simulatePrompt('Can you check if there is a power outage in Sector 62?')">
+                            📍 "Check outage in Sector 62"
+                        </button>
+                        <button class="chip" onclick="simulatePrompt('Complaint already registered hai, status check karna hai.')">
+                            📋 "Check complaint status"
+                        </button>
+                        <button class="chip chip-danger" onclick="simulatePrompt('Kitchen mein gas leak ki smell aa rahi hai.')">
+                            🔥 "Gas leak emergency"
+                        </button>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Right Panel: Conversation Transcript & Utility Diagnostics -->
+            <section class="panel right-panel">
+                <!-- Tab Navigation -->
+                <div class="tabs-nav">
+                    <button id="tabTranscriptBtn" class="tab-btn active" onclick="switchTab('transcript')">Live Conversation</button>
+                    <button id="tabKbBtn" class="tab-btn" onclick="switchTab('kb')">Knowledge Base & Guidelines</button>
+                    <button id="tabMetricsBtn" class="tab-btn" onclick="switchTab('metrics')">Session Metrics</button>
+                </div>
+
+                <!-- Tab 1: Live Conversation Feed -->
+                <div id="tabTranscript" class="tab-content active">
+                    <div id="transcriptFeed" class="transcript-feed">
+                        <div class="message-bubble system-message">
+                            <div class="bubble-header">
+                                <span class="sender-name">System</span>
+                                <span class="msg-time">Just now</span>
+                            </div>
+                            <div class="bubble-body">
+                                <strong>Welcome to SAHAYAK.</strong><br>
+                                Tap <strong>Start Voice Session</strong> to speak directly with the AI assistant in Hindi, English, or Hinglish.
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Tab 2: Knowledge Base & Rules -->
+                <div id="tabKb" class="tab-content">
+                    <div class="kb-viewer">
+                        <div class="kb-category">
+                            <h3>💧 1. Water Supply Assistance</h3>
+                            <p>Assists with outages, low pressure, and pipeline leaks. Verifies whether an issue affects one household or multiple neighboring buildings before escalating.</p>
+                        </div>
+                        <div class="kb-category">
+                            <h3>⚡ 2. Electricity Assistance</h3>
+                            <p>Addresses power cuts, voltage fluctuations, billing concerns, and meter issues. Requires verified data before declaring official outages.</p>
+                        </div>
+                        <div class="kb-category">
+                            <h3>🔥 3. Gas & Emergency Safety</h3>
+                            <p>Handles service interruptions and safety risks. For gas leaks or fire hazards, triggers immediate safety protocol and emergency escalation.</p>
+                        </div>
+                        <div class="kb-category">
+                            <h3>📋 4. Complaint Management</h3>
+                            <p>Guided lifecycle for raising new complaints, checking ticket status, and ticket updates. Follows strict confirmation rules before creating tickets.</p>
+                        </div>
+                        <div class="kb-category">
+                            <h3>🔒 5. Privacy & Grounding Rules</h3>
+                            <p>Never requests passwords, OTPs, or banking PINs. Never fabricates numbers, restoration times, or fees.</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Tab 3: Session Metrics -->
+                <div id="tabMetrics" class="tab-content">
+                    <div class="metrics-grid">
+                        <div class="metric-card">
+                            <span class="metric-label">Channel Name</span>
+                            <span id="metricChannel" class="metric-value">Not connected</span>
+                        </div>
+                        <div class="metric-card">
+                            <span class="metric-label">Client RTC UID</span>
+                            <span id="metricUid" class="metric-value">-</span>
+                        </div>
+                        <div class="metric-card">
+                            <span class="metric-label">Agent RTC UID</span>
+                            <span id="metricAgentUid" class="metric-value">123456</span>
+                        </div>
+                        <div class="metric-card">
+                            <span class="metric-label">Speech Model</span>
+                            <span class="metric-value">Deepgram Nova-3 (Multilingual)</span>
+                        </div>
+                        <div class="metric-card">
+                            <span class="metric-label">LLM Core</span>
+                            <span class="metric-value">OpenAI GPT-4o-mini</span>
+                        </div>
+                        <div class="metric-card">
+                            <span class="metric-label">Audio Latency</span>
+                            <span id="metricLatency" class="metric-value">0 ms</span>
+                        </div>
+                    </div>
+                </div>
+            </section>
+        </main>
+
+        <!-- Footer -->
+        <footer class="footer">
+            <span>SAHAYAK Multilingual Public Utility Voice Agent • Powered by Agora Conversational AI & FastAPI</span>
+            <div class="footer-links">
+                <a href="https://github.com/mahekaggarwal17/Sahayak" target="_blank" rel="noopener">GitHub Repository</a>
+                <a href="/docs" target="_blank">Swagger API</a>
+                <a href="/health" target="_blank">Health Check</a>
+            </div>
+        </footer>
+    </div>
+
+    <script src="/static/app.js"></script>
+</body>
+</html>
