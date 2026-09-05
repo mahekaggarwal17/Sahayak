@@ -61,6 +61,7 @@ const recordingsList = document.getElementById("recordingsList");
 // Initialize on page load
 document.addEventListener("DOMContentLoaded", () => {
     loadRecordings();
+    loadTickets();
 });
 
 // ==========================================================================
@@ -935,40 +936,42 @@ function simulatePrompt(text) {
 function switchTab(tabId) {
     const buttons = {
         transcript: document.getElementById("tabTranscriptBtn"),
-        storage: document.getElementById("tabStorageBtn"),
-        kb: document.getElementById("tabKbBtn"),
-        metrics: document.getElementById("tabMetricsBtn"),
+        storage:    document.getElementById("tabStorageBtn"),
+        kb:         document.getElementById("tabKbBtn"),
+        tickets:    document.getElementById("tabTicketsBtn"),
+        metrics:    document.getElementById("tabMetricsBtn"),
     };
     const panes = {
         transcript: document.getElementById("tabTranscript"),
-        storage: document.getElementById("tabStorage"),
-        kb: document.getElementById("tabKb"),
-        metrics: document.getElementById("tabMetrics"),
+        storage:    document.getElementById("tabStorage"),
+        kb:         document.getElementById("tabKb"),
+        tickets:    document.getElementById("tabTickets"),
+        metrics:    document.getElementById("tabMetrics"),
     };
 
-    Object.values(buttons).forEach(btn => btn && btn.classList.remove("active"));
+    Object.values(buttons).forEach(btn  => btn  && btn.classList.remove("active"));
     Object.values(panes).forEach(pane => pane && pane.classList.remove("active"));
 
     if (buttons[tabId]) buttons[tabId].classList.add("active");
-    if (panes[tabId]) panes[tabId].classList.add("active");
+    if (panes[tabId])   panes[tabId].classList.add("active");
 
-    if (tabId === "storage") {
-        loadRecordings();
-    }
+    if (tabId === "storage") loadRecordings();
+    if (tabId === "tickets") loadTickets();
 }
 
 function switchMainTab(tabId) {
     // Update topbar nav tabs
     document.querySelectorAll(".nav-tab").forEach(t => t.classList.remove("active"));
-    const navMap = { voice: 'navVoice', storage: 'navStorage', kb: 'navKb', metrics: 'navMetrics' };
+    const navMap = { voice: 'navVoice', storage: 'navStorage', kb: 'navKb', tickets: 'navTickets', metrics: 'navMetrics' };
     const activeNav = document.getElementById(navMap[tabId]);
     if (activeNav) activeNav.classList.add("active");
 
     // Always keep on the same page; just jump to relevant workspace tab
-    if (tabId === "voice")    { switchTab("transcript"); window.scrollTo({ top: 0, behavior: "smooth" }); }
-    else if (tabId === "storage") { switchTab("storage"); const el = document.getElementById("tabStorage"); if (el) el.scrollIntoView({ behavior: "smooth" }); }
-    else if (tabId === "kb")      { switchTab("kb"); const el = document.getElementById("tabKb"); if (el) el.scrollIntoView({ behavior: "smooth" }); }
-    else if (tabId === "metrics") { switchTab("metrics"); const el = document.getElementById("tabMetrics"); if (el) el.scrollIntoView({ behavior: "smooth" }); }
+    if (tabId === "voice")      { switchTab("transcript"); window.scrollTo({ top: 0, behavior: "smooth" }); }
+    else if (tabId === "storage")  { switchTab("storage");  const el = document.getElementById("tabStorage");  if (el) el.scrollIntoView({ behavior: "smooth" }); }
+    else if (tabId === "kb")       { switchTab("kb");       const el = document.getElementById("tabKb");       if (el) el.scrollIntoView({ behavior: "smooth" }); }
+    else if (tabId === "tickets")  { switchTab("tickets");  const el = document.getElementById("tabTickets");  if (el) el.scrollIntoView({ behavior: "smooth" }); }
+    else if (tabId === "metrics")  { switchTab("metrics");  const el = document.getElementById("tabMetrics");  if (el) el.scrollIntoView({ behavior: "smooth" }); }
 }
 
 function formatDuration(seconds) {
@@ -1000,5 +1003,129 @@ function toggleFaq(btn) {
     document.querySelectorAll('.faq-item.open').forEach(el => el.classList.remove('open'));
     // Toggle clicked item
     if (!isOpen) item.classList.add('open');
+}
+
+// ─── MY TICKETS TAB ──────────────────────────────────────────
+// Seed data — in production these would come from the backend.
+// Additional tickets can be pushed here dynamically after each call.
+const SEED_TICKETS = [
+    {
+        id: "SHK-CIVIC-1042",
+        problem: "Uncollected garbage piling up near Sector 12 main road for 3 days.",
+        category: "Waste & Sanitation",
+        categoryIcon: "🗑",
+        status: "In Progress",
+        address: "Sector 12, Block B, Near Main Gate, New Delhi – 110001",
+        department: "Nagar Nigam Sanitation Dept.",
+        raised: "04 Sep 2026, 10:32 AM",
+        updated: "05 Sep 2026, 08:15 AM",
+        pin: "SAH-4829"
+    },
+    {
+        id: "SHK-CIVIC-1038",
+        problem: "Street light on MG Road near bus stand is non-functional since last week.",
+        category: "Street Lighting",
+        categoryIcon: "💡",
+        status: "Problem Solved",
+        address: "MG Road, Bus Stand Area, Connaught Place, New Delhi – 110020",
+        department: "Municipal Electrical Dept.",
+        raised: "01 Sep 2026, 07:45 PM",
+        updated: "03 Sep 2026, 04:00 PM",
+        pin: "SAH-3317"
+    },
+    {
+        id: "SHK-CIVIC-1055",
+        problem: "Large pothole on Ring Road near Lajpat Nagar flyover causing accidents.",
+        category: "Roads & Potholes",
+        categoryIcon: "🕳",
+        status: "In Progress",
+        address: "Ring Road, Near Lajpat Nagar Flyover, New Delhi – 110024",
+        department: "PWD Roads Division",
+        raised: "05 Sep 2026, 09:10 AM",
+        updated: "05 Sep 2026, 09:10 AM",
+        pin: "SAH-7761"
+    }
+];
+
+function loadTickets() {
+    // Merge seed data with any dynamically created tickets stored in sessionStorage
+    const dynamic = JSON.parse(sessionStorage.getItem('sahayak_tickets') || '[]');
+    const all = [...dynamic, ...SEED_TICKETS];
+    renderTickets(all);
+}
+
+function renderTickets(tickets) {
+    const list   = document.getElementById('ticketsList');
+    const empty  = document.getElementById('ticketsEmpty');
+    if (!list) return;
+
+    if (!tickets || tickets.length === 0) {
+        list.innerHTML  = '';
+        if (empty) empty.classList.remove('hidden');
+        return;
+    }
+    if (empty) empty.classList.add('hidden');
+
+    list.innerHTML = tickets.map((t, i) => {
+        const isSolved = t.status === 'Problem Solved';
+        const statusClass = isSolved ? 'ticket-status solved' : 'ticket-status inprogress';
+        const statusIcon  = isSolved ? '✅' : '🔄';
+        const maskedPin   = '••••••••';
+        return `
+        <div class="ticket-card ${isSolved ? 'solved' : ''}">
+            <div class="ticket-card-top">
+                <div class="ticket-id-block">
+                    <span class="ticket-cat-icon">${t.categoryIcon}</span>
+                    <div>
+                        <div class="ticket-id">${escapeHtml(t.id)}</div>
+                        <div class="ticket-cat">${escapeHtml(t.category)}</div>
+                    </div>
+                </div>
+                <span class="${statusClass}">${statusIcon} ${escapeHtml(t.status)}</span>
+            </div>
+
+            <p class="ticket-problem">${escapeHtml(t.problem)}</p>
+
+            <div class="ticket-meta-grid">
+                <div class="ticket-meta-item">
+                    <span class="ticket-meta-label">📍 Address</span>
+                    <span class="ticket-meta-value">${escapeHtml(t.address)}</span>
+                </div>
+                <div class="ticket-meta-item">
+                    <span class="ticket-meta-label">🏢 Department</span>
+                    <span class="ticket-meta-value">${escapeHtml(t.department)}</span>
+                </div>
+                <div class="ticket-meta-item">
+                    <span class="ticket-meta-label">📅 Raised</span>
+                    <span class="ticket-meta-value">${escapeHtml(t.raised)}</span>
+                </div>
+                <div class="ticket-meta-item">
+                    <span class="ticket-meta-label">🔁 Last Updated</span>
+                    <span class="ticket-meta-value">${escapeHtml(t.updated)}</span>
+                </div>
+            </div>
+
+            <div class="ticket-pin-row">
+                <span class="ticket-pin-label">🔐 Citizen PIN</span>
+                <div class="ticket-pin-value-wrap">
+                    <code class="ticket-pin-value" id="pin-${i}">${maskedPin}</code>
+                    <button class="pin-reveal-btn" onclick="togglePin(${i}, '${escapeHtml(t.pin)}')" title="Reveal / Hide PIN" aria-label="Toggle PIN visibility">
+                        <span id="pin-eye-${i}">👁</span>
+                    </button>
+                </div>
+                <span class="pin-hint">Issued at time of filing. Keep this safe.</span>
+            </div>
+        </div>`;
+    }).join('');
+}
+
+function togglePin(index, actualPin) {
+    const pinEl = document.getElementById(`pin-${index}`);
+    const eyeEl = document.getElementById(`pin-eye-${index}`);
+    if (!pinEl) return;
+    const isHidden = pinEl.textContent === '••••••••';
+    pinEl.textContent = isHidden ? actualPin : '••••••••';
+    pinEl.classList.toggle('revealed', isHidden);
+    if (eyeEl) eyeEl.textContent = isHidden ? '🙈' : '👁';
 }
 

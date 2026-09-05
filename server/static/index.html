@@ -43,6 +43,9 @@
             <button class="nav-tab" onclick="switchMainTab('kb')" id="navKb">
                 <span class="nav-icon">⊞</span> Knowledge
             </button>
+            <button class="nav-tab" onclick="switchMainTab('tickets')" id="navTickets">
+                <span class="nav-icon">🎫</span> My Tickets
+            </button>
             <button class="nav-tab" onclick="switchMainTab('metrics')" id="navMetrics">
                 <span class="nav-icon">⊛</span> Diagnostics
             </button>
@@ -189,6 +192,7 @@
                 <button id="tabTranscriptBtn" class="ws-tab active" onclick="switchTab('transcript')">💬 Conversation</button>
                 <button id="tabStorageBtn" class="ws-tab" onclick="switchTab('storage')">📁 Call Storage (<span id="storageTabBadge">0</span>)</button>
                 <button id="tabKbBtn" class="ws-tab" onclick="switchTab('kb')">🏛 Civic KB</button>
+                <button id="tabTicketsBtn" class="ws-tab" onclick="switchTab('tickets')">🎫 My Tickets</button>
                 <button id="tabMetricsBtn" class="ws-tab" onclick="switchTab('metrics')">⚡ Session Metrics</button>
             </div>
 
@@ -229,6 +233,29 @@
                         <div class="empty-title">No recordings yet</div>
                         <div class="empty-sub">Start a voice session. When the call ends, the full audio and transcript are automatically saved here.</div>
                     </div>
+                </div>
+            </div>
+
+            <!-- Ticket Tracker -->
+            <div id="tabTickets" class="ws-pane">
+                <div class="tickets-header-row">
+                    <div class="tickets-header-left">
+                        <h2 class="tickets-title">🎫 My Complaint Tickets</h2>
+                        <p class="tickets-subtitle">Your filed complaints, real-time status, and secure citizen PIN</p>
+                    </div>
+                    <div class="tickets-header-right">
+                        <span class="pin-security-note">🔒 PINs are masked — click the eye icon to reveal</span>
+                    </div>
+                </div>
+
+                <div id="ticketsList" class="tickets-list">
+                    <!-- Rendered by JS -->
+                </div>
+
+                <div id="ticketsEmpty" class="tickets-empty hidden">
+                    <div class="empty-icon">🎫</div>
+                    <div class="empty-title">No tickets yet</div>
+                    <div class="empty-sub">Start a voice session and file a complaint. Your ticket ID, status, address, and secure PIN will appear here automatically.</div>
                 </div>
             </div>
 
