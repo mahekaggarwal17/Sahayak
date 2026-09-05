@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -10,8 +10,9 @@
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400&family=JetBrains+Mono:wght@300&display=swap" rel="stylesheet">
 <style>
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
-html{font-size:16px;scroll-behavior:smooth}
-body{background:#0A0A0A;color:#FFF;font-family:'Inter',system-ui,sans-serif;font-weight:300;-webkit-font-smoothing:antialiased;overflow-x:hidden}
+html,body{height:100%;overflow:hidden}
+html{font-size:16px}
+body{background:#0A0A0A;color:#FFF;font-family:'Inter',system-ui,sans-serif;font-weight:300;-webkit-font-smoothing:antialiased}
 :root{
   --ground:#0A0A0A;--ground2:#0F0F11;--panel:#18181B;
   --ink:#FFF;--muted:#71717A;
@@ -44,7 +45,7 @@ nav{position:fixed;top:0;left:0;right:0;z-index:100;height:52px;border-bottom:1p
 .nav-cta:hover{border-color:var(--accent);background:rgba(99,102,241,.08)}
 
 /* HERO */
-#hero{position:relative;min-height:100svh;overflow:hidden;display:flex;flex-direction:column;justify-content:flex-end}
+#hero{position:relative;height:100svh;overflow:hidden;display:flex;flex-direction:column;justify-content:flex-end}
 #hero-canvas{position:absolute;inset:0;width:100%;height:100%}
 #hero-veil{position:absolute;inset:0;pointer-events:none;background:linear-gradient(to bottom,transparent 20%,rgba(10,10,10,.94) 100%)}
 .hero-content{position:relative;z-index:2;padding:0 var(--gutter) clamp(36px,6vw,80px);max-width:var(--max);margin:0 auto;width:100%}
@@ -60,63 +61,6 @@ nav{position:fixed;top:0;left:0;right:0;z-index:100;height:52px;border-bottom:1p
 .btn-primary:hover{background:var(--accent-press)}
 .btn-ghost{padding:12px 27px;border:1px solid var(--hair);color:var(--ink);font-size:13px;letter-spacing:.04em;transition:border-color .2s;display:inline-block}
 .btn-ghost:hover{border-color:rgba(255,255,255,.3)}
-
-/* BANDS */
-.band{border-top:1px solid var(--hair);padding:clamp(48px,7vw,96px) 0}
-.band-eyebrow{display:flex;align-items:center;gap:16px;margin-bottom:36px}
-.band-eyebrow-rule{flex:1;height:1px;background:var(--hair)}
-.band-head{display:grid;grid-template-columns:1fr 1fr;gap:clamp(24px,4vw,64px);align-items:end;margin-bottom:clamp(32px,5vw,56px)}
-@media(max-width:820px){.band-head{grid-template-columns:1fr}}
-.band-title{font-size:clamp(2rem,4.6vw,3.6rem);line-height:1.05;letter-spacing:-.04em;font-weight:300;max-width:20ch}
-.band-lede{font-size:15px;line-height:1.7;color:rgba(255,255,255,.55);align-self:end}
-
-/* ENGINE GRID */
-.engine-grid{display:grid;grid-template-columns:repeat(4,1fr);background:var(--hair2);gap:1px}
-@media(max-width:1000px){.engine-grid{grid-template-columns:repeat(2,1fr)}}
-@media(max-width:560px){.engine-grid{grid-template-columns:1fr}}
-.engine-tile{background:var(--ground);padding:20px;display:flex;flex-direction:column;gap:12px;position:relative}
-.tile-canvas{width:100%;height:74px;display:block}
-.tile-index{position:absolute;top:16px;right:16px;color:var(--muted)}
-.tile-title{font-size:17px;letter-spacing:-.02em;font-weight:400}
-.tile-desc{font-size:13px;line-height:1.65;color:rgba(255,255,255,.5)}
-
-/* SPECTRUM */
-.spectrum-band{border-top:1px solid var(--hair);border-bottom:1px solid var(--hair);position:relative;height:clamp(200px,32vw,340px);overflow:hidden}
-#spec-canvas{display:block;width:100%;height:100%}
-.spec-caption{position:absolute;bottom:14px;left:var(--gutter);color:var(--muted)}
-.spec-hz{position:absolute;bottom:14px;right:var(--gutter);color:var(--accent);font-size:11px}
-
-/* STATS */
-.stats-grid{display:grid;grid-template-columns:repeat(4,1fr);background:var(--hair2);gap:1px}
-@media(max-width:700px){.stats-grid{grid-template-columns:repeat(2,1fr)}}
-.stat-cell{background:var(--ground);padding:clamp(20px,3vw,36px) clamp(16px,2vw,28px)}
-.stat-num{font-size:clamp(2.2rem,5vw,3.4rem);letter-spacing:-.04em;line-height:1;font-weight:300;margin-bottom:8px}
-.stat-num .lead{color:var(--accent)}
-.stat-caption{font-size:12.5px;color:var(--muted);letter-spacing:.01em}
-
-/* FAQ */
-.faq-list{border-top:1px solid var(--hair)}
-details{border-bottom:1px solid var(--hair)}
-summary{display:flex;align-items:center;justify-content:space-between;padding:22px 0;cursor:pointer;font-size:clamp(14px,1.6vw,17px);list-style:none;transition:color .2s;user-select:none}
-summary:hover{color:var(--accent)}
-summary::-webkit-details-marker{display:none}
-.faq-plus{position:relative;width:13px;height:13px;flex-shrink:0;margin-left:20px}
-.faq-plus::before,.faq-plus::after{content:'';position:absolute;background:currentColor}
-.faq-plus::before{width:1px;height:13px;left:6px;top:0;transition:transform .25s ease}
-.faq-plus::after{width:13px;height:1px;top:6px;left:0}
-details[open] .faq-plus::before{transform:scaleY(0)}
-.faq-answer{padding:0 0 22px;font-size:14px;line-height:1.75;color:rgba(255,255,255,.55);max-width:62ch}
-
-/* CLOSE */
-.close-band{border-top:1px solid var(--hair);padding:clamp(64px,10vw,128px) 0 clamp(48px,7vw,96px);text-align:center}
-.close-stmt{font-size:clamp(2.4rem,7vw,5.4rem);letter-spacing:-.05em;line-height:.9;font-weight:300;max-width:16ch;margin:0 auto 36px}
-.close-btns{display:flex;gap:12px;justify-content:center;flex-wrap:wrap}
-
-/* FOOTER */
-footer{border-top:1px solid var(--hair);padding:28px var(--gutter);display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:16px}
-footer span,footer a{color:var(--muted)}
-footer a:hover{color:var(--ink)}
-.footer-links{display:flex;gap:24px}
 
 /* REVEALS */
 .reveal{opacity:0;transform:translateY(20px);transition:opacity .9s cubic-bezier(.16,1,.3,1),transform .9s cubic-bezier(.16,1,.3,1)}
@@ -136,9 +80,8 @@ footer a:hover{color:var(--ink)}
   <div class="nav-inner">
     <div class="nav-brand mono"><span>SAHAYAK</span><span style="color:rgba(255,255,255,.35)"> सहायक</span></div>
     <div class="nav-links mono">
-      <a href="#engine">Engine</a>
-      <a href="#spectrum">Spectrum</a>
-      <a href="#faq">FAQ</a>
+      <a href="https://github.com/mahekaggarwal17/Sahayak" target="_blank" rel="noopener">GitHub</a>
+      <a href="/docs" target="_blank">API Docs</a>
     </div>
     <a href="/app" class="nav-cta mono">Open App →</a>
   </div>
@@ -155,16 +98,16 @@ footer a:hover{color:var(--ink)}
       <div class="hero-meta-sep"></div>
       <span>v1.0 · Hindi + English + Hinglish</span>
     </div>
-    <h1 class="hero-headline" id="hero-headline" aria-label="Voice AI for India."></h1>
+    <h1 class="hero-headline" id="hero-headline" aria-label="Sahayak"></h1>
     <p class="hero-sub reveal">Describe your municipal problem naturally — water cuts, broken streetlights, dangerous potholes, garbage backlogs — in any mix of Hindi, English and Hinglish. SAHAYAK listens, registers and responds instantly.</p>
     <div class="hero-btns reveal">
       <a href="/app" class="btn-primary mono">Start a Voice Session</a>
-      <a href="#engine" class="btn-ghost mono">See how it works</a>
+      <a href="https://github.com/mahekaggarwal17/Sahayak" target="_blank" rel="noopener" class="btn-ghost mono">View on GitHub</a>
     </div>
   </div>
 </section>
 
-<section class="band" id="engine">
+<script>
   <div class="wrap">
     <div class="band-eyebrow mono reveal"><span>01 · Engine</span><div class="band-eyebrow-rule"></div></div>
     <div class="band-head reveal">
@@ -215,74 +158,7 @@ footer a:hover{color:var(--ink)}
   </div>
 </section>
 
-<section class="band" id="stats">
-  <div class="wrap">
-    <div class="band-eyebrow mono reveal"><span>03 · Numbers</span><div class="band-eyebrow-rule"></div></div>
-  </div>
-  <div class="wrap" style="padding-top:0">
-    <div class="stats-grid reveal">
-      <div class="stat-cell"><div class="stat-num"><span class="lead">6</span></div><div class="stat-caption mono">Civic domains covered</div></div>
-      <div class="stat-cell"><div class="stat-num"><span class="lead">3</span></div><div class="stat-caption mono">Languages: Hindi · English · Hinglish</div></div>
-      <div class="stat-cell"><div class="stat-num"><span class="lead">&lt;1</span>s</div><div class="stat-caption mono">End-to-end voice round-trip</div></div>
-      <div class="stat-cell"><div class="stat-num"><span class="lead">112</span></div><div class="stat-caption mono">Emergency protocol aware</div></div>
-    </div>
-  </div>
-</section>
 
-<section class="band" id="faq">
-  <div class="wrap">
-    <div class="band-eyebrow mono reveal"><span>04 · Questions</span><div class="band-eyebrow-rule"></div></div>
-    <div class="band-head reveal">
-      <h2 class="band-title">Common questions.</h2>
-      <p class="band-lede">Everything you need to know about how SAHAYAK works, what it handles and how recorded calls are stored.</p>
-    </div>
-    <div class="faq-list reveal">
-      <details>
-        <summary>Which civic issues can SAHAYAK handle?<span class="faq-plus" aria-hidden="true"></span></summary>
-        <p class="faq-answer">SAHAYAK covers six municipal domains: Waste and Sanitation, Street Lighting and Electrical, Roads and Potholes, Water Supply and Connections, Ticket Registration and Tracking, and Urgent Public Safety Hazards (live wires, gas leaks, open manholes). Each maps to a real civic department and generates a reference ticket number.</p>
-      </details>
-      <details>
-        <summary>Do I need to choose a language before calling?<span class="faq-plus" aria-hidden="true"></span></summary>
-        <p class="faq-answer">No. SAHAYAK recognises Hindi, English and Hinglish mid-sentence without any mode switch. You can say "Bhai, street light on our road is kharab ho gayi hai" and it will parse, classify and respond naturally in the same register you used.</p>
-      </details>
-      <details>
-        <summary>How are recorded calls stored and who can access them?<span class="faq-plus" aria-hidden="true"></span></summary>
-        <p class="faq-answer">Every session is recorded client-side via the Web Audio API, mixed from both mic and agent streams, and uploaded to the FastAPI backend as WebM Opus audio on call end. Recordings are stored server-side by session ID and are retrievable only via the same web client. No data leaves the server without an explicit download action.</p>
-      </details>
-      <details>
-        <summary>What happens during an emergency like a live wire or gas leak?<span class="faq-plus" aria-hidden="true"></span></summary>
-        <p class="faq-answer">The civic intent router flags Urgent Public Safety issues immediately. SAHAYAK interrupts its normal flow, issues clear safety instructions, and provides the national emergency helpline 112 verbally and as an on-screen alert banner.</p>
-      </details>
-      <details>
-        <summary>Can I use SAHAYAK on a mobile device?<span class="faq-plus" aria-hidden="true"></span></summary>
-        <p class="faq-answer">Yes. The web client is fully responsive and works in Chrome for Android and Safari for iOS. A native Android application built with Jetpack Compose is also included in the project, using the same Agora RTC/RTM SDK under the hood.</p>
-      </details>
-      <details>
-        <summary>Is there a live transcript of what SAHAYAK says?<span class="faq-plus" aria-hidden="true"></span></summary>
-        <p class="faq-answer">Yes. Agora RTM 2.x streams a per-turn transcription payload carrying the text and turn status. The web client renders it in a live captions card that updates word-by-word as the agent speaks, and the full transcript is saved alongside the audio at call end.</p>
-      </details>
-    </div>
-  </div>
-</section>
-
-<section class="close-band reveal">
-  <div class="wrap">
-    <p class="close-stmt">Speak. We handle the rest.</p>
-    <div class="close-btns">
-      <a href="/app" class="btn-primary mono">Open SAHAYAK</a>
-      <a href="https://github.com/mahekaggarwal17/Sahayak" target="_blank" rel="noopener" class="btn-ghost mono">View Source</a>
-    </div>
-  </div>
-</section>
-
-<footer>
-  <span class="mono">SAHAYAK · Civic Voice Intelligence · Agora Build-a-thon 2025</span>
-  <div class="footer-links mono">
-    <a href="/docs" target="_blank">API</a>
-    <a href="/health" target="_blank">Health</a>
-    <a href="https://github.com/mahekaggarwal17/Sahayak" target="_blank" rel="noopener">GitHub</a>
-  </div>
-</footer>
 
 <script>
 /* INTRO */
@@ -298,7 +174,7 @@ footer a:hover{color:var(--ink)}
 })();
 
 /* HEADLINE GLYPHS */
-var HEADLINE='Voice AI for India.';
+var HEADLINE='Sahayak';
 (function(){
   var el=document.getElementById('hero-headline');
   el.innerHTML='';
@@ -359,77 +235,11 @@ if(window.matchMedia('(prefers-reduced-motion:reduce)').matches){startHeroGlyphs
   }
 })();
 
-/* TILE CANVASES */
-function initTile(id,drawFn){
-  var c=document.getElementById(id);if(!c)return;
-  var ctx=c.getContext('2d'),dpr=Math.min(devicePixelRatio,2);
-  function rsz(){var r=c.getBoundingClientRect();c.width=r.width*dpr;c.height=r.height*dpr;ctx.scale(dpr,dpr);}
-  rsz();window.addEventListener('resize',function(){ctx.setTransform(1,0,0,1,0,0);rsz();});
-  var reduced=window.matchMedia('(prefers-reduced-motion:reduce)').matches;
-  if(reduced){var r=c.getBoundingClientRect();drawFn(ctx,r.width,r.height,0);return;}
-  var raf,active=false;
-  function frame(t){raf=requestAnimationFrame(frame);var r=c.getBoundingClientRect();drawFn(ctx,r.width,r.height,t);}
-  new IntersectionObserver(function(e){if(e[0].isIntersecting){if(!active){active=true;raf=requestAnimationFrame(frame);}}else{active=false;cancelAnimationFrame(raf);}},{threshold:.1}).observe(c);
-}
-
-initTile('tc0',function(ctx,w,h,t){
-  ctx.clearRect(0,0,w,h);ctx.strokeStyle='rgba(99,102,241,.9)';ctx.lineWidth=1.5;ctx.lineCap='round';ctx.beginPath();
-  var T=t*.001;for(var x=0;x<=w;x+=2){var u=x/w,amp=.35*Math.sin(u*Math.PI),y=h*.5+h*amp*Math.sin(u*8*Math.PI+T*4);x===0?ctx.moveTo(x,y):ctx.lineTo(x,y);}ctx.stroke();
-});
-
-initTile('tc1',function(ctx,w,h,t){
-  ctx.clearRect(0,0,w,h);var COLS=14,ROWS=3,bw=w/COLS,bh=h/ROWS,T=t*.0012;
-  for(var r=0;r<ROWS;r++)for(var c2=0;c2<COLS;c2++){var a=.12+.5*(.5+.5*Math.sin(T*2+(r*COLS+c2)*.47));ctx.fillStyle='rgba(99,102,241,'+a+')';ctx.fillRect(c2*bw+1,r*bh+1,bw-2,bh-2);}
-});
-
-initTile('tc2',function(ctx,w,h,t){
-  ctx.clearRect(0,0,w,h);var T=t*.0009;
-  [{freq:1.2,amp:.12,alpha:.8},{freq:2.1,amp:.09,alpha:.6},{freq:1.6,amp:.11,alpha:.5},{freq:2.8,amp:.07,alpha:.35}].forEach(function(l,i){
-    var y0=h*(i+.5)/4;ctx.strokeStyle='rgba(99,102,241,'+l.alpha+')';ctx.lineWidth=1.2;ctx.lineCap='round';ctx.beginPath();
-    for(var x=0;x<=w;x+=2){var ux=x/w,y=y0+h*l.amp*Math.sin(ux*l.freq*6*Math.PI+T*(2+i*.5));x===0?ctx.moveTo(x,y):ctx.lineTo(x,y);}ctx.stroke();
-  });
-});
-
-initTile('tc3',function(ctx,w,h,t){
-  ctx.clearRect(0,0,w,h);var cx=w*.5,cy=h*.5,R=Math.min(w,h)*.36,T=t*.001;
-  ctx.beginPath();ctx.arc(cx,cy,R,0,Math.PI*2);ctx.strokeStyle='rgba(99,102,241,.22)';ctx.lineWidth=1;ctx.stroke();
-  var sA=T*2.5,eA=sA+Math.PI*.55+.15*Math.sin(T*1.3);ctx.beginPath();ctx.arc(cx,cy,R,sA,eA);ctx.strokeStyle='rgba(99,102,241,.9)';ctx.lineWidth=1.5;ctx.stroke();
-  for(var i=0;i<6;i++){var a=i*Math.PI/3+T*.4;ctx.beginPath();ctx.arc(cx+R*Math.cos(a),cy+R*Math.sin(a),2,0,Math.PI*2);ctx.fillStyle='rgba(99,102,241,.5)';ctx.fill();}
-  ctx.beginPath();ctx.arc(cx,cy,3,0,Math.PI*2);ctx.fillStyle='rgba(99,102,241,.9)';ctx.fill();
-});
-
-/* SPECTRUM */
-(function(){
-  var c=document.getElementById('spec-canvas'),hz=document.getElementById('spec-hz');if(!c||!hz)return;
-  var ctx=c.getContext('2d'),BARS=72,S0=11,S1=31,dpr=Math.min(devicePixelRatio,2);
-  function rsz(){var r=c.getBoundingClientRect();c.width=r.width*dpr;c.height=r.height*dpr;}
-  rsz();window.addEventListener('resize',rsz);
-  var reduced=window.matchMedia('(prefers-reduced-motion:reduce)').matches,raf;
-  function draw(t){
-    raf=requestAnimationFrame(draw);
-    var W=c.width,H=c.height,T=t*.0007,bw=W/BARS;
-    ctx.clearRect(0,0,W,H);
-    var sc=0,sn=0;
-    for(var i=0;i<BARS;i++){
-      var u=i/(BARS-1),env=Math.sin(u*Math.PI),isSel=i>=S0&&i<=S1;
-      var barH=isSel?H*(.55+.35*env):H*(.22+.52*env*(.6+.4*(.5+.5*Math.sin(u*4.2*Math.PI+T*2.1))));
-      if(isSel){sc+=(i+.5)/BARS;sn++;}
-      ctx.fillStyle=isSel?'rgba(99,102,241,1)':'rgba(255,255,255,.16)';
-      ctx.fillRect(i*bw+1,H-barH,bw-2,barH);
-    }
-    ctx.strokeStyle='rgba(99,102,241,.85)';ctx.lineWidth=1;ctx.strokeRect(S0*bw,0,(S1-S0+1)*bw,H);
-    hz.textContent=Math.round(sc/sn*22050).toLocaleString()+' Hz';
-  }
-  new IntersectionObserver(function(e){if(e[0].isIntersecting){if(!reduced)raf=requestAnimationFrame(draw);else draw(0);}},{threshold:.05}).observe(c);
-  if(reduced)draw(0);
-})();
-
 /* SCROLL REVEALS */
 (function(){
   var reduced=window.matchMedia('(prefers-reduced-motion:reduce)').matches;
   var els=document.querySelectorAll('.reveal');
   if(reduced){els.forEach(function(e){e.classList.add('is-visible')});return;}
-  new IntersectionObserver(function(entries){entries.forEach(function(e){if(e.isIntersecting){e.target.classList.add('is-visible');}});},{threshold:.16,rootMargin:'0px 0px -8% 0px'}).observe=function(){};
   var obs=new IntersectionObserver(function(entries){entries.forEach(function(e){if(e.isIntersecting){e.target.classList.add('is-visible');obs.unobserve(e.target);}});},{threshold:.16,rootMargin:'0px 0px -8% 0px'});
   els.forEach(function(e){obs.observe(e);});
 })();
