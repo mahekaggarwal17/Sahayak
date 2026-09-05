@@ -51,7 +51,7 @@ class Settings:
             llm_model=os.getenv("LLM_MODEL", "gpt-4o-mini"),
             tts_model=os.getenv("TTS_MODEL", "speech_2_6_turbo"),
             tts_voice_id=os.getenv("TTS_VOICE_ID", "hindi_female_2_v1"),
-            agora_area=os.getenv("AGORA_AREA", "NORTH_AMERICA"),
+            agora_area=os.getenv("AGORA_AREA", "ASIA_PACIFIC"),
             agent_uid=int(os.getenv("AGORA_AGENT_UID", "123456")),
             host=os.getenv("HOST", "127.0.0.1"),
             port=int(os.getenv("PORT", "8000")),

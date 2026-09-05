@@ -70,7 +70,11 @@ class AgoraClient:
         return (
             Agent(
                 client=self._client,
-                turn_detection={"language": "en-US"},
+                turn_detection={
+                    "silence_duration_ms": 350,
+                    "prefix_padding_ms": 200,
+                    "eagerness": "high",
+                },
                 advanced_features={"enable_rtm": True},
                 parameters={
                     "audio_scenario": "chorus",
@@ -88,10 +92,10 @@ class AgoraClient:
                     ],
                     greeting_message=GREETING_MESSAGE,
                     failure_message=FAILURE_MESSAGE,
-                    max_history=15,
-                    max_tokens=1024,
-                    temperature=0.7,
-                    top_p=0.95,
+                    max_history=8,
+                    max_tokens=150,
+                    temperature=0.5,
+                    top_p=0.9,
                 )
             )
             .with_tts(
@@ -99,6 +103,7 @@ class AgoraClient:
                     model=self.settings.tts_model,
                     voice_id=self.settings.tts_voice_id,
                     language_boost="Hindi",
+                    speed=1.05,
                 )
             )
         )
