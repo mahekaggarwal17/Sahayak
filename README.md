@@ -1,195 +1,109 @@
-# Agora Conversational AI Android Quickstart
+# SAHAYAK (सहायक) - Multilingual Public Utility Voice AI Agent
 
-This repository is a template-style Android starter for building a Voice AI app with Agora Conversational AI.
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](license.md)
+[![Platform](https://img.shields.io/badge/Platform-Android%20%7C%20FastAPI-green.svg)]()
+[![Agora Conversational AI](https://img.shields.io/badge/Agora-Conversational%20AI-orange.svg)](https://docs.agora.io/)
+[![Backend Status](https://img.shields.io/badge/Render-Live-brightgreen.svg)](https://sahayak-backend-0r3f.onrender.com/health)
 
-It gives you a Kotlin + Jetpack Compose app backed by a small Python service that:
+**SAHAYAK** is a context-aware, multilingual voice AI assistant built for public utility services. It allows citizens to report outages, track complaints, inquire about water, electricity, and gas supply, and receive verified public service guidance in natural **Hindi, English, and Hinglish**.
 
-- joins an Agora RTC channel
-- starts and manages an Agora Conversational AI agent through the backend
-- listens for transcript, agent state, and pipeline metrics over RTM
-- lets the user talk, mute, interrupt, and end the session
-- keeps the App Certificate and token generation off the Android device
+Powered by **Agora Conversational AI**, **Jetpack Compose (Android)**, and **FastAPI**.
 
-> [!NOTE]
-> This quickstart requires the included Python backend. Local mobile testing uses a temporary public HTTPS tunnel so the Android device can reach the development server.
+---
 
-## Prerequisites
+## 🌐 Live Project Links
 
-- Android Studio with JDK 17 or newer
-- Python 3.10 or newer
-- Bash for the scripts in `server/`
-- An Android device or emulator with microphone support
-- An Agora account with access to Conversational AI
-- A development tunnel provider; the included helper supports Cloudflare Tunnel, ngrok, Tailscale Funnel, and LocalTunnel
+- **GitHub Repository**: [https://github.com/mahekaggarwal17/Sahayak](https://github.com/mahekaggarwal17/Sahayak)
+- **Live Deployed Backend**: [https://sahayak-backend-0r3f.onrender.com](https://sahayak-backend-0r3f.onrender.com)
+- **API Health Check**: [https://sahayak-backend-0r3f.onrender.com/health](https://sahayak-backend-0r3f.onrender.com/health)
+- **Interactive Swagger API Docs**: [https://sahayak-backend-0r3f.onrender.com/docs](https://sahayak-backend-0r3f.onrender.com/docs)
 
-The commands below assume a macOS or Linux shell. On Windows, run the backend scripts from WSL or an equivalent Bash environment.
+---
 
-## Quick Start
+## 🏛️ System Architecture
 
-### 1. Install the Agora CLI and sign in
+```
+┌─────────────────────────────────┐
+│     Citizen's Android Phone     │
+│   (Kotlin + Jetpack Compose)    │
+└──────────────┬──────────────────┘
+               │  1. Starts Session (HTTP)
+               ▼
+┌─────────────────────────────────┐               ┌─────────────────────────────────┐
+│   Live Python Backend (Render)  │ 2. Spawns     │   Agora Conversational AI Cloud │
+│    FastAPI + Session Manager    ├──────────────►│   - Deepgram STT (Multilingual) │
+│    (Holds Agora Credentials)    │    Agent      │   - OpenAI LLM (SAHAYAK KB)     │
+└──────────────┬──────────────────┘               │   - MiniMax / TTS Audio Engine  │
+               │                                  └──────────────┬──────────────────┘
+               │  3. Returns RTC/RTM Tokens                      │
+               ▼                                                 │ 4. Realtime Audio
+┌─────────────────────────────────┐                              │    & Transcripts
+│     Direct RTC Audio Stream     │◄─────────────────────────────┘
+│  (Bi-directional Voice Channel) │
+└─────────────────────────────────┘
+```
 
-Skip this step if `agora` is already on your `PATH`.
+---
 
+## 💡 Key Features & Capabilities
+
+### 1. Multilingual & Natural Hinglish Code-Switching
+- Natural dialogue in Hindi, English, and casual Hinglish (e.g., *"Kal raat se paani nahi aa raha"*, *"Bijli ka bill bahut high aa gaya"*).
+- Empathetic, respectful, and avoids robotic, overly formal language.
+
+### 2. Core Public Utility Coverage
+- 💧 **Water Supply Assistance**: Outages, low pressure, contamination, single household vs. area-wide diagnostics.
+- ⚡ **Electricity Assistance**: Power outages, frequent tripping, voltage issues, billing questions.
+- 🔥 **Gas & Public Utility**: Service disruptions, connection queries, and strict **Emergency Protocol** (immediate redirection and safety precautions for gas leaks/fires).
+- 📋 **Complaint & Ticket Lifecycle**: Step-by-step guidance for raising new complaints, checking ticket status, and logging updates.
+
+### 3. Strict Grounding & Anti-Hallucination
+- **Core Principle**: `LISTEN → CLARIFY → CONFIRM → VERIFY → ACT → RESOLVE OR ESCALATE`
+- SAHAYAK never fabricates helpline numbers, ticket numbers, official outage confirmations, or restoration times.
+- If data is unavailable, explicitly states: *"Main is information ko abhi reliably verify nahi kar paa raha hoon."*
+
+### 4. Human Escalation Protocol
+- If an issue is ambiguous, beyond AI scope, or upon caller request, SAHAYAK bundles all context (language, intent, location, timeline, attempted actions) and routes to human support without requiring the caller to repeat themselves.
+
+---
+
+## 📱 Mobile App (Android Client)
+
+- Built with modern **Kotlin** and **Jetpack Compose** Material 3.
+- Real-time live transcript streaming over **Agora RTM**.
+- Bi-directional low-latency voice streaming over **Agora RTC**.
+- Mute, interrupt, and session management controls.
+
+---
+
+## ⚙️ Quick Start & Local Setup
+
+### 1. Backend Server Setup
 ```bash
-curl -fsSL https://dl.agora.io/cli/install.sh | sh
-agora --help
-agora login
+cd server
+python -m venv .venv
+source .venv/bin/activate  # On Windows: .\.venv\Scripts\activate
+pip install -r requirements.txt
+
+# Configure environment variables in server/.env.local:
+# AGORA_APP_ID=your_app_id
+# AGORA_APP_CERTIFICATE=your_app_certificate
+
+uvicorn app.main:app --reload --port 8000
 ```
 
-### 2. Get the quickstart
+### 2. Android App Setup
+1. Open the repository root in **Android Studio**.
+2. Update `local.properties`:
+   ```properties
+   QUICKSTART_SERVER_URL=https://sahayak-backend-0r3f.onrender.com
+   ```
+3. Build and install on an emulator or physical device:
+   ```bash
+   ./gradlew :app:assembleDebug
+   ```
 
-The recommended path lets the CLI clone the template and bind an Agora project. Replace `my-android-demo` with your app folder name:
+---
 
-```bash
-agora init my-android-demo --template android
-cd my-android-demo
-```
-
-`agora init` selects or creates an Agora project and records the project binding in `.agora/project.json`.
-
-To work from an existing clone instead:
-
-```bash
-git clone https://github.com/AgoraIO-Conversational-AI/agent-quickstart-android.git
-cd agent-quickstart-android
-```
-
-If you use an existing clone, you will select the Agora project when you configure the server in the next step.
-
-### 3. Configure and run the Python server
-
-```bash
-python3 -m venv server/.venv
-source server/.venv/bin/activate
-pip install -r server/requirements-dev.txt
-cp -n server/.env.example server/.env.local
-agora project env write server/.env.local --template standard
-./server/run.sh
-```
-
-The command above uses the project selected by `agora init`. For an existing clone, select the project explicitly instead:
-
-```bash
-agora project env write server/.env.local \
-  --project <project-name-or-id> \
-  --template standard
-./server/run.sh
-```
-
-The server listens on `http://127.0.0.1:8000` and keeps `AGORA_APP_CERTIFICATE` off the Android device. Leave this terminal running. The local endpoint uses HTTP; the selected tunnel provider supplies the public HTTPS endpoint required by Android.
-
-### 4. Create a temporary public HTTPS URL
-
-In another terminal, run:
-
-```bash
-./server/tunnel.sh --provider ngrok
-```
-
-Choose `cloudflare`, `ngrok`, `tailscale`, or `localtunnel` with `--provider`. Keep the tunnel running and copy its generated `https://` URL.
-
-Verify that the public endpoint reaches the Python server:
-
-```bash
-curl https://your-public-host/health
-```
-
-The response must be backend health JSON, not a tunnel-provider login or warning page. See [Local HTTPS tunnels](docs/local-tunnels.md) for explicit ngrok, Cloudflare Tunnel, Tailscale Funnel, and LocalTunnel commands.
-
-### 5. Configure Android
-
-Write the public server URL to root `local.properties`:
-
-```bash
-./server/configure-android.sh https://your-public-host
-```
-
-The script writes only this client value:
-
-```properties
-QUICKSTART_SERVER_URL=https://your-public-host
-```
-
-Do not put `AGORA_APP_CERTIFICATE` in `local.properties`.
-
-### 6. Build the app
-
-```bash
-JAVA_HOME="/Applications/Android Studio.app/Contents/jbr/Contents/Home" ./gradlew :app:assembleDebug
-```
-
-If your shell already uses JDK 17 or newer, `./gradlew :app:assembleDebug` is sufficient.
-
-### 7. Run it
-
-Open the project in Android Studio, or run it from the command line, then launch it on a device or emulator.
-
-Tap **Start voice session**, allow microphone permission, speak to the agent, and watch transcripts appear in real time.
-
-If the agent does not join or transcripts do not appear, run:
-
-```bash
-agora project doctor --deep
-```
-
-If the temporary tunnel URL changes, run `server/configure-android.sh` again, rebuild, and reinstall the app. For manual setup, optional configuration, and production notes, see [docs/setup.md](docs/setup.md).
-
-## What To Read First
-
-If you are using this as a template, start here:
-
-- [ConversationScreen.kt](app/src/main/java/com/androidengineers/agent_quickstart_android/ui/ConversationScreen.kt)
-- [ConversationViewModel.kt](app/src/main/java/com/androidengineers/agent_quickstart_android/ui/ConversationViewModel.kt)
-- [AgoraConversationSessionManager.kt](app/src/main/java/com/androidengineers/agent_quickstart_android/rtc/AgoraConversationSessionManager.kt)
-- [ConversationAgoraApi.kt](app/src/main/java/com/androidengineers/agent_quickstart_android/data/ConversationAgoraApi.kt)
-- [Python backend](server/app/main.py)
-
-Those files show the full flow from UI action to Agora session setup.
-
-## What To Customize First
-
-Most teams will customize these pieces first:
-
-1. `ConversationScreen.kt` for UI layout, branding, and session cards
-2. `ConversationViewModel.kt` for app state, button actions, and session orchestration
-3. `AgoraConversationSessionManager.kt` for RTC, RTM, and media behavior
-4. `server/app/agora_client.py` for agent presets, geofence, and model configuration
-
-## Build And Test
-
-Run the Python server tests:
-
-```bash
-server/.venv/bin/python -m pytest server/tests
-```
-
-Compile Kotlin:
-
-```bash
-JAVA_HOME="/Applications/Android Studio.app/Contents/jbr/Contents/Home" ./gradlew :app:compileDebugKotlin
-```
-
-Run unit tests:
-
-```bash
-JAVA_HOME="/Applications/Android Studio.app/Contents/jbr/Contents/Home" ./gradlew :app:testDebugUnitTest
-```
-
-Assemble debug APK:
-
-```bash
-JAVA_HOME="/Applications/Android Studio.app/Contents/jbr/Contents/Home" ./gradlew :app:assembleDebug
-```
-
-## Docs
-
-- [Setup](docs/setup.md): CLI, server, tunnel, and Android configuration
-- [Local HTTPS tunnels](docs/local-tunnels.md): expose the development server to a physical device
-- [Backend runbook](docs/backend-runbook.md): local server, public tunnel, API contract, deployment, and smoke checks
-- [Architecture](docs/architecture.md): app structure, code map, session lifecycle, and state flow
-- [Troubleshooting](docs/troubleshooting.md): common setup, agent, RTM, metrics, and microphone issues
-- [Agent coding guidance](docs/agent-guidance.md): Agora CLI skills and guidance for AI coding agents
-
-## Security Note
-
-`AGORA_APP_CERTIFICATE` stays in `server/.env.local` and is never compiled into Android. The Python server generates the Android user's RTC/RTM token and uses the Agora Python SDK to start, interrupt, and stop the agent. A development tunnel URL is public while the tunnel is running, so stop the tunnel when testing is complete and add appropriate application authentication before adapting this demo for production.
+## 📄 License
+This project is licensed under the MIT License - see the [license.md](license.md) file for details.
