@@ -18,6 +18,8 @@ def _csv(value: str) -> tuple[str, ...]:
 class Settings:
     agora_app_id: str
     agora_app_certificate: str
+    agora_customer_id: str = "2478952098254c99964e2b4c5df7f58d"
+    agora_customer_secret: str = "5b3e6db886bc4f29bff1dbad3af3483b"
     asr_model: str = "nova-3"
     llm_model: str = "gpt-4o-mini"
     tts_model: str = "speech_2_6_turbo"
@@ -39,6 +41,8 @@ class Settings:
         return cls(
             agora_app_id=os.getenv("AGORA_APP_ID", "").strip(),
             agora_app_certificate=os.getenv("AGORA_APP_CERTIFICATE", "").strip(),
+            agora_customer_id=os.getenv("AGORA_CUSTOMER_ID", "2478952098254c99964e2b4c5df7f58d").strip(),
+            agora_customer_secret=os.getenv("AGORA_CUSTOMER_SECRET", "5b3e6db886bc4f29bff1dbad3af3483b").strip(),
             asr_model=os.getenv("ASR_MODEL", "nova-3"),
             llm_model=os.getenv("LLM_MODEL", "gpt-4o-mini"),
             tts_model=os.getenv("TTS_MODEL", "speech_2_6_turbo"),

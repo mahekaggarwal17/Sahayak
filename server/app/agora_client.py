@@ -49,6 +49,8 @@ class AgoraClient:
             area=AREA_BY_NAME[area_name],
             app_id=settings.agora_app_id,
             app_certificate=settings.agora_app_certificate,
+            customer_id=settings.agora_customer_id or None,
+            customer_secret=settings.agora_customer_secret or None,
             httpx_client=self._http,
         )
         self._sessions: dict[str, tuple[str, Any]] = {}
@@ -147,8 +149,11 @@ class AgoraClient:
             await session.stop()
         except httpx.TimeoutException as exc:
             raise AgoraTimeoutError("Agora stop request timed out.") from exc
-        except (ApiError, httpx.HTTPError, RuntimeError) as exc:
-            raise AgoraUpstreamError(f"Agora agent stop failed: {exc}") from exc
+        except (ApiError, httpx.HTTPError, RuntimeError, ValueError) as exc:
+            if "shutting down" in str(exc).lower() or "not found" in str(exc).lower() or "conflict" in str(exc).lower():
+                pass
+            else:
+                raise AgoraUpstreamError(f"Agora agent stop failed: {exc}") from exc
         self._sessions.pop(agent_id, None)
 
     def _require_session(self, agent_id: str, channel_name: str) -> Any:
