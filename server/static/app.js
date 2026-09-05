@@ -112,12 +112,27 @@ async function startCall() {
 
         // 3. Join RTC Channel
         updateState("connecting", "Connecting audio stream...");
-        await rtcClient.join(
-            sessionData.app_id,
-            sessionData.channel_name,
-            sessionData.rtc_token,
-            sessionData.requester_rtc_uid
-        );
+        try {
+            await rtcClient.join(
+                sessionData.app_id,
+                sessionData.channel_name,
+                sessionData.rtc_token,
+                sessionData.requester_rtc_uid
+            );
+        } catch (tokenErr) {
+            console.warn("RTC Token failed, attempting fallback connection without token...", tokenErr);
+            try {
+                await rtcClient.join(
+                    sessionData.app_id,
+                    sessionData.channel_name,
+                    null,
+                    sessionData.requester_rtc_uid
+                );
+            } catch (fallbackErr) {
+                console.error("Both token and null token join failed:", fallbackErr);
+                throw new Error("Agora RTC token authorization failed. Please make sure the Primary Certificate for project 'Voice_agent' is copied from Agora Console into AGORA_APP_CERTIFICATE.");
+            }
+        }
 
         // 4. Create and publish microphone audio track
         localAudioTrack = await AgoraRTC.createMicrophoneAudioTrack({
