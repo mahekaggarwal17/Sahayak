@@ -5,10 +5,14 @@ import secrets
 import time
 from typing import Any
 
+import base64
+import json
 from fastapi import APIRouter, Depends, HTTPException, Request, status
+from fastapi.responses import FileResponse
 
 from .agora_client import AgoraClient, AgoraTimeoutError, AgoraUpstreamError
 from .config import Settings
+from .recordings_store import RecordingsStore
 from .schemas import (
     ActionResponse,
     AgentActionRequest,
@@ -17,15 +21,25 @@ from .schemas import (
     HealthResponse,
     JoinRequest,
     JoinResponse,
+    RecordingDetailResponse,
+    RecordingSummaryResponse,
+    RecordingsListResponse,
     RefreshRequest,
     RefreshResponse,
+    SaveRecordingRequest,
 )
 from .security import build_rate_limiter
 from .session_store import SessionRecord, SessionStore
 
 
-def create_router(settings: Settings, store: SessionStore, agora: AgoraClient) -> APIRouter:
+def create_router(
+    settings: Settings,
+    store: SessionStore,
+    agora: AgoraClient,
+    recordings: RecordingsStore | None = None,
+) -> APIRouter:
     router = APIRouter()
+    rec_store = recordings or RecordingsStore()
     rate_limit = build_rate_limiter(settings)
     throttled = [Depends(rate_limit)]
 
@@ -153,6 +167,95 @@ def create_router(settings: Settings, store: SessionStore, agora: AgoraClient) -
             rtm_token=rtm_token,
             expires_at_unix=expires_at,
         )
+
+    # --- Recorded Calls Storage Endpoints ---
+
+    @router.post(
+        "/v1/recordings",
+        response_model=RecordingDetailResponse,
+        status_code=status.HTTP_201_CREATED,
+    )
+    async def upload_recording(
+        body: SaveRecordingRequest,
+    ) -> RecordingDetailResponse:
+        audio_bytes = b""
+        if body.audio_base64:
+            try:
+                # Strip data URL prefix if present (e.g. data:audio/webm;base64,...)
+                raw_b64 = body.audio_base64
+                if "," in raw_b64:
+                    raw_b64 = raw_b64.split(",", 1)[1]
+                audio_bytes = base64.b64decode(raw_b64)
+            except Exception as e:
+                raise HTTPException(status_code=400, detail=f"Invalid base64 audio data: {e}")
+
+        # If audio_bytes is empty, provide a minimal silent placeholder or allow empty
+        ext = (body.audio_format or "webm").lower().lstrip(".")
+
+        record = rec_store.save_recording(
+            audio_bytes=audio_bytes,
+            channel_name=body.channel_name,
+            duration_seconds=body.duration_seconds,
+            transcripts=body.transcripts,
+            metadata=body.metadata,
+            file_extension=ext,
+        )
+        return RecordingDetailResponse(**record)
+
+    @router.get(
+        "/v1/recordings",
+        response_model=RecordingsListResponse,
+    )
+    async def list_recordings(
+        category: str | None = None,
+        query: str | None = None,
+    ) -> RecordingsListResponse:
+        records = rec_store.list_recordings(category=category, query=query)
+        summaries = [RecordingSummaryResponse(**r) for r in records]
+        return RecordingsListResponse(
+            total_count=len(summaries),
+            recordings=summaries,
+        )
+
+    @router.get(
+        "/v1/recordings/{recording_id}",
+        response_model=RecordingDetailResponse,
+    )
+    async def get_recording(recording_id: str) -> RecordingDetailResponse:
+        record = rec_store.get_recording(recording_id)
+        if not record:
+            raise HTTPException(status_code=404, detail="Recording not found.")
+        return RecordingDetailResponse(**record)
+
+    @router.get(
+        "/v1/recordings/{recording_id}/audio",
+    )
+    async def get_recording_audio(recording_id: str):
+        path = rec_store.get_audio_path(recording_id)
+        if not path or not path.exists():
+            raise HTTPException(status_code=404, detail="Audio file not found for recording.")
+
+        ext = path.suffix.lower()
+        media_type_map = {
+            ".webm": "audio/webm",
+            ".wav": "audio/wav",
+            ".aac": "audio/aac",
+            ".mp3": "audio/mpeg",
+            ".m4a": "audio/mp4",
+            ".ogg": "audio/ogg",
+        }
+        media_type = media_type_map.get(ext, "application/octet-stream")
+        return FileResponse(path=path, media_type=media_type, filename=path.name)
+
+    @router.delete(
+        "/v1/recordings/{recording_id}",
+        response_model=ActionResponse,
+    )
+    async def delete_recording(recording_id: str) -> ActionResponse:
+        deleted = rec_store.delete_recording(recording_id)
+        if not deleted:
+            raise HTTPException(status_code=404, detail="Recording not found.")
+        return ActionResponse(success=True, message="Recording deleted successfully.")
 
     return router
 

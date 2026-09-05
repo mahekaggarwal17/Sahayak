@@ -58,39 +58,40 @@ fun AgentCard(
 ) {
     Card(
         modifier = modifier,
-        shape = RoundedCornerShape(20.dp),
-        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
+        shape = RoundedCornerShape(24.dp),
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.25f)),
         colors = CardDefaults.cardColors(
-            containerColor = Color.Transparent,
+            containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.7f),
         ),
         elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
     ) {
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp),
+                .padding(18.dp),
+            verticalArrangement = Arrangement.spacedBy(14.dp),
         ) {
             if (title != null || subtitle != null) {
                 Surface(
                     shape = RoundedCornerShape(16.dp),
-                    color = MaterialTheme.colorScheme.surfaceContainerHigh.copy(alpha = 0.5f),
+                    color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
                 ) {
                     Column(
-                        modifier = Modifier.padding(horizontal = 14.dp, vertical = 12.dp),
-                        verticalArrangement = Arrangement.spacedBy(4.dp),
+                        modifier = Modifier.padding(horizontal = 14.dp, vertical = 10.dp),
+                        verticalArrangement = Arrangement.spacedBy(3.dp),
                     ) {
                         title?.let {
                             Text(
                                 text = it,
-                                style = MaterialTheme.typography.titleLarge,
+                                style = MaterialTheme.typography.titleMedium,
+                                fontWeight = FontWeight.Bold,
                                 color = MaterialTheme.colorScheme.onSurface,
                             )
                         }
                         subtitle?.let {
                             Text(
                                 text = it,
-                                style = MaterialTheme.typography.bodyMedium,
+                                style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                             )
                         }
@@ -116,10 +117,18 @@ fun AgentButton(
                 onClick = onClick,
                 modifier = modifier,
                 enabled = enabled,
-                shape = RoundedCornerShape(16.dp),
-                contentPadding = PaddingValues(horizontal = 18.dp, vertical = 16.dp),
+                shape = CircleShape,
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = MaterialTheme.colorScheme.primary,
+                    contentColor = MaterialTheme.colorScheme.onPrimary,
+                ),
+                contentPadding = PaddingValues(horizontal = 24.dp, vertical = 16.dp),
             ) {
-                Text(text = text, style = MaterialTheme.typography.labelLarge)
+                Text(
+                    text = text,
+                    style = MaterialTheme.typography.labelLarge,
+                    fontWeight = FontWeight.Bold,
+                )
             }
         }
 
@@ -128,11 +137,19 @@ fun AgentButton(
                 onClick = onClick,
                 modifier = modifier,
                 enabled = enabled,
-                shape = RoundedCornerShape(16.dp),
-                contentPadding = PaddingValues(horizontal = 18.dp, vertical = 16.dp),
-                border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
+                shape = CircleShape,
+                contentPadding = PaddingValues(horizontal = 24.dp, vertical = 16.dp),
+                border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.4f)),
+                colors = ButtonDefaults.outlinedButtonColors(
+                    containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.4f),
+                    contentColor = MaterialTheme.colorScheme.onSurface,
+                ),
             ) {
-                Text(text = text, style = MaterialTheme.typography.labelLarge)
+                Text(
+                    text = text,
+                    style = MaterialTheme.typography.labelLarge,
+                    fontWeight = FontWeight.SemiBold,
+                )
             }
         }
 
@@ -141,15 +158,19 @@ fun AgentButton(
                 onClick = onClick,
                 modifier = modifier,
                 enabled = enabled,
-                shape = RoundedCornerShape(16.dp),
-                contentPadding = PaddingValues(horizontal = 18.dp, vertical = 16.dp),
+                shape = CircleShape,
+                contentPadding = PaddingValues(horizontal = 24.dp, vertical = 16.dp),
                 colors = ButtonDefaults.buttonColors(
                     containerColor = MaterialTheme.colorScheme.error,
                     contentColor = MaterialTheme.colorScheme.onError,
                     disabledContainerColor = MaterialTheme.colorScheme.error.copy(alpha = 0.45f),
                 ),
             ) {
-                Text(text = text, style = MaterialTheme.typography.labelLarge)
+                Text(
+                    text = text,
+                    style = MaterialTheme.typography.labelLarge,
+                    fontWeight = FontWeight.Bold,
+                )
             }
         }
     }

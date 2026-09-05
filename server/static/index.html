@@ -3,237 +3,352 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SAHAYAK (सहायक) - Multilingual Public Utility Voice AI</title>
-    <meta name="description" content="SAHAYAK is a multilingual public utility assistance voice agent for Water, Electricity, Gas, and Complaints in Hindi, English, and Hinglish.">
+    <title>SAHAYAK — Civic Voice AI · Hackathon Demo</title>
+    <meta name="description" content="SAHAYAK: India's first multilingual civic voice AI for public utility services. Built on Agora Conversational AI with real-time Hindi/English voice understanding.">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Outfit:wght@500;600;700;800&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="/static/styles.css">
-    <!-- Agora RTC Web SDK -->
     <script src="https://download.agora.io/sdk/release/AgoraRTC_N-4.23.0.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/agora-rtm-sdk@2.2.0/index.min.js"></script>
 </head>
 <body>
-    <div class="background-glow glow-1"></div>
-    <div class="background-glow glow-2"></div>
 
-    <div class="app-container">
-        <!-- Header -->
-        <header class="navbar">
-            <div class="brand">
-                <div class="brand-badge">
-                    <span class="pulse-dot"></span>
-                    <span>VOICE AI</span>
-                </div>
-                <div class="brand-text">
-                    <h1>SAHAYAK <span class="hindi-title">(सहायक)</span></h1>
-                    <p class="subtitle">Multilingual Public Utility Voice Agent</p>
-                </div>
+<!-- Animated Grid Background -->
+<div class="bg-grid"></div>
+<div class="bg-glow-top"></div>
+<div class="bg-glow-bottom"></div>
+
+<!-- Top Navigation Bar -->
+<header class="topbar">
+    <div class="topbar-inner">
+        <div class="topbar-brand">
+            <div class="brand-orb">
+                <span class="brand-orb-ring"></span>
             </div>
-            <div class="header-badges">
-                <span class="badge badge-accent">Agora AI Cloud</span>
-                <span class="badge badge-lang">हिन्दी • English • Hinglish</span>
-                <div id="connectionStatus" class="status-indicator status-idle">
-                    <span class="status-dot"></span>
-                    <span class="status-text">Ready to Connect</span>
-                </div>
+            <div>
+                <div class="brand-name">SAHAYAK <span class="brand-hindi">सहायक</span></div>
+                <div class="brand-sub">Civic Voice Intelligence</div>
             </div>
-        </header>
+        </div>
 
-        <!-- Main Layout -->
-        <main class="main-grid">
-            <!-- Left Panel: Interactive Voice Hub -->
-            <section class="panel voice-hub">
-                <div class="panel-header">
-                    <h2>Live Voice Session</h2>
-                    <span class="version-tag">v1.0 Public Utility KB</span>
+        <nav class="topbar-nav">
+            <button class="nav-tab active" onclick="switchMainTab('voice')" id="navVoice">
+                <span class="nav-icon">◎</span> Live Voice
+            </button>
+            <button class="nav-tab" onclick="switchMainTab('storage')" id="navStorage">
+                <span class="nav-icon">⊟</span> Recordings
+                <span id="storageCountBadge" class="nav-badge">0</span>
+            </button>
+            <button class="nav-tab" onclick="switchMainTab('kb')" id="navKb">
+                <span class="nav-icon">⊞</span> Knowledge
+            </button>
+            <button class="nav-tab" onclick="switchMainTab('metrics')" id="navMetrics">
+                <span class="nav-icon">⊛</span> Diagnostics
+            </button>
+        </nav>
+
+        <div class="topbar-actions">
+            <div class="status-pill" id="connectionStatus">
+                <span class="status-dot" id="statusDot"></span>
+                <span id="connectionStatusText">Ready</span>
+            </div>
+            <button class="btn-launch" id="btnHeaderCta" onclick="toggleCall()">
+                <span id="btnHeaderCtaText">▶ Start Session</span>
+            </button>
+        </div>
+    </div>
+</header>
+
+<!-- Main Content Area -->
+<main class="main-content">
+
+    <!-- ═══════════════════════════════════════════
+         VOICE HUB TAB
+    ═══════════════════════════════════════════ -->
+    <div id="mainVoice" class="main-tab active">
+
+        <!-- Hero Row -->
+        <section class="hero-row">
+            <div class="hero-text-block">
+                <div class="hackathon-tag">
+                    <span class="tag-dot"></span>
+                    Agora Build-a-thon 2025 · Public Utility Track
                 </div>
-
-                <!-- Central Interactive Voice Orb -->
-                <div class="orb-container">
-                    <div class="orb-ring ring-3"></div>
-                    <div class="orb-ring ring-2"></div>
-                    <div class="orb-ring ring-1"></div>
-                    <div id="voiceOrb" class="voice-orb idle">
-                        <div class="orb-core">
-                            <svg id="micIcon" class="orb-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                <path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/>
-                                <path d="M19 10v2a7 7 0 0 1-14 0v-2"/>
-                                <line x1="12" y1="19" x2="12" y2="22"/>
-                            </svg>
-                        </div>
+                <h1 class="hero-h1">
+                    Voice AI for<br>
+                    <span class="hero-accent">India's Citizens.</span>
+                </h1>
+                <p class="hero-desc">
+                    Report civic issues—water cuts, broken streetlights, potholes, garbage—in natural Hindi, English, or Hinglish.
+                    SAHAYAK listens, understands, and registers your complaint instantly.
+                </p>
+                <div class="hero-stats">
+                    <div class="hero-stat">
+                        <span class="stat-n">6</span>
+                        <span class="stat-l">Civic Domains</span>
                     </div>
-                    <div class="orb-label">
-                        <span id="agentStateLabel">Click Start to Speak</span>
-                        <div id="audioWaveform" class="waveform hidden">
-                            <span></span><span></span><span></span><span></span><span></span>
-                        </div>
+                    <div class="stat-divider"></div>
+                    <div class="hero-stat">
+                        <span class="stat-n">3</span>
+                        <span class="stat-l">Languages</span>
+                    </div>
+                    <div class="stat-divider"></div>
+                    <div class="hero-stat">
+                        <span class="stat-n">&lt;1s</span>
+                        <span class="stat-l">Response</span>
+                    </div>
+                    <div class="stat-divider"></div>
+                    <div class="hero-stat">
+                        <span class="stat-n">112</span>
+                        <span class="stat-l">Emergency Aware</span>
                     </div>
                 </div>
-
-                <!-- Call Controls -->
-                <div class="controls-bar">
-                    <button id="btnStart" class="btn btn-primary" onclick="toggleCall()">
-                        <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/>
-                        </svg>
+                <div class="hero-cta-row">
+                    <button id="btnStart" class="btn-primary" onclick="toggleCall()">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2a5 5 0 1 0 0 10A5 5 0 0 0 12 2zm0 12c-5.33 0-8 2.67-8 4v2h16v-2c0-1.33-2.67-4-8-4z"/></svg>
                         <span id="btnStartText">Start Voice Session</span>
                     </button>
-
-                    <button id="btnMute" class="btn btn-secondary" onclick="toggleMute()" disabled title="Mute/Unmute Mic">
-                        <svg id="muteIcon" class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/>
-                            <path d="M19 10v2a7 7 0 0 1-14 0v-2"/>
-                            <line x1="12" y1="19" x2="12" y2="22"/>
-                        </svg>
-                        <span id="btnMuteText">Mute</span>
+                    <button id="btnMute" class="btn-secondary" onclick="toggleMute()" disabled>
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg>
+                        <span id="btnMuteText">Mute Mic</span>
                     </button>
-
-                    <button id="btnInterrupt" class="btn btn-secondary" onclick="interruptAgent()" disabled title="Interrupt Agent">
-                        <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <circle cx="12" cy="12" r="10"/>
-                            <rect x="9" y="9" width="6" height="6"/>
-                        </svg>
-                        <span>Interrupt</span>
+                    <button id="btnInterrupt" class="btn-ghost" onclick="interruptAgent()" disabled>
+                        <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/></svg>
+                        Interrupt
                     </button>
                 </div>
-
-                <!-- Emergency Banner -->
-                <div id="emergencyBanner" class="alert-banner hidden">
-                    <span class="alert-icon">⚠️</span>
-                    <div class="alert-content">
-                        <strong>URGENT PUBLIC SAFETY PROTOCOL:</strong>
-                        <span>Immediately stay clear of danger. Do NOT touch live wires or ignite flames near gas leaks. Contact emergency services (112) or the 24x7 Civic Emergency Helpline immediately.</span>
-                    </div>
-                </div>
-
-                <!-- Sample Prompts / Quick Test Chips -->
-                <div class="quick-prompts">
-                    <span class="prompts-title">Try saying or tap to practice:</span>
-                    <div class="chips-grid">
-                        <button class="chip" onclick="simulatePrompt('Mere area mein 3 din se kachra nahi uthaya gaya.')">
-                            🗑️ "3 din se kachra nahi utha"
-                        </button>
-                        <button class="chip" onclick="simulatePrompt('Street light kharab hai aur road par andhera hai.')">
-                            💡 "Street light kharab hai"
-                        </button>
-                        <button class="chip" onclick="simulatePrompt('Road par bahut bada pothole hai, accident ka darr hai.')">
-                            🕳️ "Road par bada pothole hai"
-                        </button>
-                        <button class="chip" onclick="simulatePrompt('Paani ki supply kal se nahi aa rahi.')">
-                            💧 "Paani ki supply nahi aa rahi"
-                        </button>
-                        <button class="chip" onclick="simulatePrompt('Mujhe naye water connection ke liye apply karna hai.')">
-                            🚰 "Naye water connection ke liye apply"
-                        </button>
-                        <button class="chip" onclick="simulatePrompt('Meri complaint number 7429 ka status check karna hai.')">
-                            📋 "Complaint status check karna hai"
-                        </button>
-                        <button class="chip chip-danger" onclick="simulatePrompt('Road par live electric wire gir gaya hai, emergency hai!')">
-                            ⚠️ "Live electric wire fallen"
-                        </button>
-                    </div>
-                </div>
-            </section>
-
-            <!-- Right Panel: Conversation Transcript & Utility Diagnostics -->
-            <section class="panel right-panel">
-                <!-- Tab Navigation -->
-                <div class="tabs-nav">
-                    <button id="tabTranscriptBtn" class="tab-btn active" onclick="switchTab('transcript')">Live Conversation</button>
-                    <button id="tabKbBtn" class="tab-btn" onclick="switchTab('kb')">Civic Knowledge Base</button>
-                    <button id="tabMetricsBtn" class="tab-btn" onclick="switchTab('metrics')">Session Metrics</button>
-                </div>
-
-                <!-- Tab 1: Live Conversation Feed -->
-                <div id="tabTranscript" class="tab-content active">
-                    <div id="transcriptFeed" class="transcript-feed">
-                        <div class="message-bubble system-message">
-                            <div class="bubble-header">
-                                <span class="sender-name">System</span>
-                                <span class="msg-time">Just now</span>
-                            </div>
-                            <div class="bubble-body">
-                                <strong>Welcome to SAHAYAK (सहायक).</strong><br>
-                                Voice-first Public Utility Assistant for Waste Management, Street Lights, Potholes, Water Supply, Electricity & Civic Services.<br>
-                                Tap <strong>Start Voice Session</strong> to speak naturally in Hindi, English, or Hinglish.
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Tab 2: Knowledge Base & Rules -->
-                <div id="tabKb" class="tab-content">
-                    <div class="kb-viewer">
-                        <div class="kb-category">
-                            <h3>🗑️ 1. Waste Management & Sanitation</h3>
-                            <p>Assists with uncollected garbage, overflowing community bins, and road sweeping. Collects landmark, confirms details, and logs ticket with Nagar Nigam Sanitation Dept.</p>
-                        </div>
-                        <div class="kb-category">
-                            <h3>💡 2. Street Lighting & Electrical</h3>
-                            <p>Addresses non-functional or flickering streetlights, dark road stretches, and open electric junction boxes for Municipal Electrical repair.</p>
-                        </div>
-                        <div class="kb-category">
-                            <h3>🕳️ 3. Roads & Potholes</h3>
-                            <p>Takes reports on severe potholes, damaged asphalt, cave-ins, and broken dividers, routing directly to PWD / Roads Division.</p>
-                        </div>
-                        <div class="kb-category">
-                            <h3>💧 4. Water Supply & Connections</h3>
-                            <p>Handles water supply cuts, low pressure, dirty water complaints, and provides step-by-step guidance for applying for new piped water connections.</p>
-                        </div>
-                        <div class="kb-category">
-                            <h3>📋 5. Ticket Registration & Tracking</h3>
-                            <p>Generates reference tickets (format: <code>SHK-CIVIC-XXXX</code>) and translates technical municipal statuses into clear conversational explanations.</p>
-                        </div>
-                        <div class="kb-category">
-                            <h3>⚠️ 6. Urgent Public Issues & Safety</h3>
-                            <p>Identifies live electric wires, gas leaks, and open manholes immediately. Advises safety precautions and guides to 112 emergency helpline.</p>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Tab 3: Session Metrics -->
-                <div id="tabMetrics" class="tab-content">
-                    <div class="metrics-grid">
-                        <div class="metric-card">
-                            <span class="metric-label">Channel Name</span>
-                            <span id="metricChannel" class="metric-value">Not connected</span>
-                        </div>
-                        <div class="metric-card">
-                            <span class="metric-label">Client RTC UID</span>
-                            <span id="metricUid" class="metric-value">-</span>
-                        </div>
-                        <div class="metric-card">
-                            <span class="metric-label">Agent RTC UID</span>
-                            <span id="metricAgentUid" class="metric-value">123456</span>
-                        </div>
-                        <div class="metric-card">
-                            <span class="metric-label">Speech Model</span>
-                            <span class="metric-value">Deepgram Nova-3 (Multilingual)</span>
-                        </div>
-                        <div class="metric-card">
-                            <span class="metric-label">LLM Core</span>
-                            <span class="metric-value">OpenAI GPT-4o-mini</span>
-                        </div>
-                        <div class="metric-card">
-                            <span class="metric-label">Audio Latency</span>
-                            <span id="metricLatency" class="metric-value">0 ms</span>
-                        </div>
-                    </div>
-                </div>
-            </section>
-        </main>
-
-        <!-- Footer -->
-        <footer class="footer">
-            <span>SAHAYAK Multilingual Public Utility Voice Agent • Powered by Agora Conversational AI & FastAPI</span>
-            <div class="footer-links">
-                <a href="https://github.com/mahekaggarwal17/Sahayak" target="_blank" rel="noopener">GitHub Repository</a>
-                <a href="/docs" target="_blank">Swagger API</a>
-                <a href="/health" target="_blank">Health Check</a>
             </div>
-        </footer>
+
+            <!-- Central Voice Orb Panel -->
+            <div class="orb-panel">
+                <div class="orb-scene">
+                    <!-- Floating civic tags around the orb -->
+                    <button class="civic-chip chip-tl" onclick="simulatePrompt('Mere area mein 3 din se kachra nahi uthaya gaya.')">🗑 Waste</button>
+                    <button class="civic-chip chip-tr" onclick="simulatePrompt('Paani ki supply kal se nahi aa rahi hai.')">💧 Water</button>
+                    <button class="civic-chip chip-ml" onclick="simulatePrompt('Street light kharab hai aur andhera hai.')">💡 Lights</button>
+                    <button class="civic-chip chip-mr" onclick="simulatePrompt('Road par bahut bada pothole hai.')">🛣 Roads</button>
+                    <button class="civic-chip chip-bl" onclick="simulatePrompt('Meri complaint ka status check karna hai.')">📋 Tickets</button>
+                    <button class="civic-chip chip-br chip-urgent" onclick="simulatePrompt('Road par live electric wire gir gaya hai!')">⚠ 112</button>
+
+                    <!-- The orb -->
+                    <div class="orb-container" onclick="toggleCall()">
+                        <div class="orb-ring orb-ring-1"></div>
+                        <div class="orb-ring orb-ring-2"></div>
+                        <div class="orb-ring orb-ring-3"></div>
+                        <div id="voiceOrb" class="voice-orb idle">
+                            <div class="orb-inner-glow"></div>
+                            <div class="orb-logo">स</div>
+                        </div>
+                    </div>
+
+                    <div class="orb-status">
+                        <span id="agentStateLabel">Click orb to start</span>
+                        <div id="audioWaveform" class="eq-bars hidden">
+                            <span></span><span></span><span></span><span></span><span></span><span></span><span></span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Live Captions card below orb -->
+                <div id="liveCaptionsCard" class="captions-card">
+                    <div class="captions-card-header">
+                        <div class="captions-left">
+                            <span class="cc-chip">CC</span>
+                            <span class="live-indicator">
+                                <span class="live-dot" id="liveDot"></span>
+                                LIVE CAPTIONS
+                            </span>
+                            <span class="speaking-for">· SAHAYAK सहायक</span>
+                        </div>
+                        <div class="captions-right">
+                            <div id="captionsEqualizer" class="eq-bars small hidden">
+                                <span></span><span></span><span></span><span></span>
+                            </div>
+                            <button class="cc-toggle-btn" id="btnToggleCaptions" onclick="toggleCaptionsVisibility()">Hide</button>
+                        </div>
+                    </div>
+                    <div id="liveCaptionsContent" class="captions-body">
+                        <p id="liveCaptionsText" class="captions-text placeholder">
+                            Live captions will appear here as SAHAYAK speaks...
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Emergency Banner -->
+        <div id="emergencyBanner" class="emergency-bar hidden">
+            <span class="em-icon">⚠</span>
+            <span><strong>PUBLIC SAFETY ALERT ACTIVE:</strong> Stay clear of hazards. Do not touch exposed wires or ignite flames near gas leaks. Call <strong>112</strong> immediately.</span>
+        </div>
+
+        <!-- Workspace Tabs -->
+        <section class="workspace">
+            <div class="workspace-tabs">
+                <button id="tabTranscriptBtn" class="ws-tab active" onclick="switchTab('transcript')">💬 Conversation</button>
+                <button id="tabStorageBtn" class="ws-tab" onclick="switchTab('storage')">📁 Call Storage (<span id="storageTabBadge">0</span>)</button>
+                <button id="tabKbBtn" class="ws-tab" onclick="switchTab('kb')">🏛 Civic KB</button>
+                <button id="tabMetricsBtn" class="ws-tab" onclick="switchTab('metrics')">⚡ Session Metrics</button>
+            </div>
+
+            <!-- Transcript -->
+            <div id="tabTranscript" class="ws-pane active">
+                <div id="transcriptFeed" class="transcript-feed">
+                    <div class="msg system">
+                        <div class="msg-meta">
+                            <span class="msg-sender">System</span>
+                            <span class="msg-time">Just now</span>
+                        </div>
+                        <div class="msg-body">
+                            Welcome to <strong>SAHAYAK (सहायक)</strong> — India's civic voice AI.<br>
+                            Covers: Waste · Streetlights · Potholes · Water · Gas · Emergency 112<br>
+                            Press <strong>Start Voice Session</strong> to speak in Hindi, English, or Hinglish.
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Storage -->
+            <div id="tabStorage" class="ws-pane">
+                <div class="storage-header-row">
+                    <div class="storage-stats">
+                        <div class="s-stat"><span id="statCallsCount" class="s-num">0</span><span class="s-lbl">Calls Stored</span></div>
+                        <div class="s-stat"><span id="statTotalDuration" class="s-num">0s</span><span class="s-lbl">Total Duration</span></div>
+                        <div class="s-stat"><span class="s-num green">Auto</span><span class="s-lbl">Recording Mode</span></div>
+                        <div class="s-stat"><span class="s-num">WebM</span><span class="s-lbl">Audio Codec</span></div>
+                    </div>
+                    <div class="storage-controls">
+                        <input type="text" id="storageSearchInput" class="search-input" placeholder="Search calls, tickets, keywords..." oninput="filterRecordings()">
+                        <button class="btn-icon" onclick="loadRecordings()" title="Refresh">↺</button>
+                    </div>
+                </div>
+                <div id="recordingsList" class="recordings-list">
+                    <div class="empty-state">
+                        <div class="empty-icon">🎙</div>
+                        <div class="empty-title">No recordings yet</div>
+                        <div class="empty-sub">Start a voice session. When the call ends, the full audio and transcript are automatically saved here.</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Knowledge Base -->
+            <div id="tabKb" class="ws-pane">
+                <div class="kb-grid">
+                    <div class="kb-card">
+                        <div class="kb-icon">🗑</div>
+                        <div class="kb-content">
+                            <h3>Waste &amp; Sanitation</h3>
+                            <p>Uncollected garbage, overflowing bins, road sweeping. Logs ticket with Nagar Nigam Sanitation Dept.</p>
+                            <div class="kb-tag">Nagar Nigam</div>
+                        </div>
+                    </div>
+                    <div class="kb-card">
+                        <div class="kb-icon">💡</div>
+                        <div class="kb-content">
+                            <h3>Street Lighting &amp; Electrical</h3>
+                            <p>Non-functional or flickering streetlights, dark roads, open junction boxes for Municipal Electrical repair.</p>
+                            <div class="kb-tag">Municipal Electrical</div>
+                        </div>
+                    </div>
+                    <div class="kb-card">
+                        <div class="kb-icon">🕳</div>
+                        <div class="kb-content">
+                            <h3>Roads &amp; Potholes</h3>
+                            <p>Severe potholes, damaged asphalt, cave-ins, broken dividers routed to PWD / Municipal Roads Division.</p>
+                            <div class="kb-tag">PWD</div>
+                        </div>
+                    </div>
+                    <div class="kb-card">
+                        <div class="kb-icon">💧</div>
+                        <div class="kb-content">
+                            <h3>Water Supply</h3>
+                            <p>Water cuts, low pressure, dirty water complaints, and guidance for new piped water connection applications.</p>
+                            <div class="kb-tag">Jal Board</div>
+                        </div>
+                    </div>
+                    <div class="kb-card">
+                        <div class="kb-icon">📋</div>
+                        <div class="kb-content">
+                            <h3>Ticket Tracking</h3>
+                            <p>Generates reference tickets <code>SHK-CIVIC-XXXX</code> and translates municipal statuses to plain language.</p>
+                            <div class="kb-tag">Auto-Register</div>
+                        </div>
+                    </div>
+                    <div class="kb-card kb-card-urgent">
+                        <div class="kb-icon">⚠</div>
+                        <div class="kb-content">
+                            <h3>Emergency &amp; Hazards</h3>
+                            <p>Live wires, gas leaks, open manholes. Triggers safety protocol and routes to 112 emergency helpline.</p>
+                            <div class="kb-tag red">Emergency 112</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Metrics -->
+            <div id="tabMetrics" class="ws-pane">
+                <div class="metrics-grid">
+                    <div class="metric-card">
+                        <div class="metric-label">Channel Name</div>
+                        <div id="metricChannel" class="metric-value mono">—</div>
+                    </div>
+                    <div class="metric-card">
+                        <div class="metric-label">Client RTC UID</div>
+                        <div id="metricUid" class="metric-value mono">—</div>
+                    </div>
+                    <div class="metric-card">
+                        <div class="metric-label">Agent UID</div>
+                        <div class="metric-value mono">123456</div>
+                    </div>
+                    <div class="metric-card">
+                        <div class="metric-label">Audio Transport Delay</div>
+                        <div id="metricLatency" class="metric-value mono">0 ms</div>
+                    </div>
+                    <div class="metric-card">
+                        <div class="metric-label">ASR Engine</div>
+                        <div class="metric-value mono">Deepgram Nova-3</div>
+                    </div>
+                    <div class="metric-card">
+                        <div class="metric-label">TTS Voice</div>
+                        <div class="metric-value mono">MiniMax Hindi Female</div>
+                    </div>
+                    <div class="metric-card">
+                        <div class="metric-label">LLM Backbone</div>
+                        <div class="metric-value mono">OpenAI GPT-4o</div>
+                    </div>
+                    <div class="metric-card">
+                        <div class="metric-label">Backend Runtime</div>
+                        <div class="metric-value mono">FastAPI + Python 3.11</div>
+                    </div>
+                </div>
+            </div>
+        </section>
     </div>
 
-    <script src="/static/app.js"></script>
+    <!-- Other main tabs (storage/kb/metrics as full-page views via nav) -->
+    <div id="mainStorage" class="main-tab"></div>
+    <div id="mainKb" class="main-tab"></div>
+    <div id="mainMetrics" class="main-tab"></div>
+
+</main>
+
+<!-- Footer -->
+<footer class="site-footer">
+    <div class="footer-inner">
+        <div class="footer-left">
+            <span class="footer-brand">SAHAYAK</span>
+            <span class="footer-sep">·</span>
+            <span>Multilingual Civic Voice AI · Powered by Agora Conversational AI + FastAPI</span>
+        </div>
+        <div class="footer-links">
+            <a href="https://github.com/mahekaggarwal17/Sahayak" target="_blank" rel="noopener">GitHub ↗</a>
+            <a href="/docs" target="_blank">API Docs ↗</a>
+            <a href="/health" target="_blank">Health ↗</a>
+        </div>
+    </div>
+</footer>
+
+<script src="/static/app.js"></script>
 </body>
 </html>

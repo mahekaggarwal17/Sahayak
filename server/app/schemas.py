@@ -68,3 +68,47 @@ class ErrorDetail(BaseModel):
     message: str
     request_id: str | None = None
     context: dict[str, Any] | None = None
+
+
+class TranscriptTurnSchema(BaseModel):
+    speaker: str = "agent"
+    text: str
+    timestamp: str | None = None
+    turn_id: int | None = None
+
+
+class SaveRecordingRequest(BaseModel):
+    channel_name: str
+    duration_seconds: int = 0
+    audio_base64: str = ""
+    audio_format: str = "webm"
+    transcripts: list[dict[str, Any]] = []
+    metadata: dict[str, Any] = {}
+
+
+class RecordingSummaryResponse(BaseModel):
+    id: str
+    channel_name: str
+    created_at_iso: str
+    created_at_formatted: str
+    timestamp_unix: int
+    duration_seconds: int
+    audio_filename: str
+    audio_url: str
+    file_size_bytes: int
+    category: str
+    ticket_number: str | None = None
+    summary: str
+    turns_count: int
+    agent_id: str | None = None
+    caller_rtc_uid: str | None = None
+
+
+class RecordingDetailResponse(RecordingSummaryResponse):
+    transcripts: list[dict[str, Any]] = []
+
+
+class RecordingsListResponse(BaseModel):
+    total_count: int
+    recordings: list[RecordingSummaryResponse]
+

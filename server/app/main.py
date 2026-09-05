@@ -13,6 +13,7 @@ from fastapi.staticfiles import StaticFiles
 
 from .agora_client import AgoraClient
 from .config import Settings
+from .recordings_store import RecordingsStore
 from .routes import create_router
 from .session_store import SessionStore
 
@@ -23,10 +24,12 @@ logger = logging.getLogger("uvicorn.error")
 def create_app(
     settings: Settings | None = None,
     agora_client: AgoraClient | None = None,
+    recordings_store: RecordingsStore | None = None,
 ) -> FastAPI:
     resolved_settings = settings or Settings.from_env()
     store = SessionStore(resolved_settings.session_ttl_seconds)
     agora = agora_client or AgoraClient(resolved_settings)
+    recordings = recordings_store or RecordingsStore()
 
     @asynccontextmanager
     async def lifespan(_: FastAPI):
@@ -41,11 +44,12 @@ def create_app(
     )
     application.state.settings = resolved_settings
     application.state.session_store = store
+    application.state.recordings_store = recordings
     application.add_middleware(
         CORSMiddleware,
         allow_origins=list(resolved_settings.allowed_origins),
         allow_credentials=resolved_settings.allowed_origins != ("*",),
-        allow_methods=["GET", "POST"],
+        allow_methods=["GET", "POST", "DELETE"],
         allow_headers=["Content-Type", "X-Request-ID"],
     )
 
@@ -67,14 +71,18 @@ def create_app(
         )
         return response
 
-    application.include_router(create_router(resolved_settings, store, agora))
+    application.include_router(create_router(resolved_settings, store, agora, recordings))
 
     static_dir = Path(__file__).resolve().parents[1] / "static"
     if static_dir.exists():
         application.mount("/static", StaticFiles(directory=str(static_dir)), name="static")
 
         @application.get("/", include_in_schema=False)
-        async def serve_index():
+        async def serve_landing():
+            return FileResponse(static_dir / "landing.html")
+
+        @application.get("/app", include_in_schema=False)
+        async def serve_app():
             return FileResponse(static_dir / "index.html")
 
     return application

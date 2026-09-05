@@ -25,8 +25,16 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.layout.FlowRow
+import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.tween
+import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.DarkMode
 import androidx.compose.material.icons.outlined.ErrorOutline
@@ -186,6 +194,143 @@ fun VoiceAiAppScreen(
 }
 
 @Composable
+fun CivicEclipseOrb(
+    modifier: Modifier = Modifier,
+    isSpeaking: Boolean = false,
+    isListening: Boolean = false,
+    onClick: (() -> Unit)? = null,
+) {
+    val infiniteTransition = rememberInfiniteTransition(label = "OrbPulse")
+    val pulseScale by infiniteTransition.animateFloat(
+        initialValue = if (isSpeaking) 0.94f else 0.98f,
+        targetValue = if (isSpeaking) 1.08f else 1.02f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(if (isSpeaking) 600 else 2200),
+            repeatMode = RepeatMode.Reverse,
+        ),
+        label = "PulseScale",
+    )
+    val glowAlpha by infiniteTransition.animateFloat(
+        initialValue = if (isSpeaking) 0.55f else 0.25f,
+        targetValue = if (isSpeaking) 0.95f else 0.45f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(if (isSpeaking) 600 else 2200),
+            repeatMode = RepeatMode.Reverse,
+        ),
+        label = "GlowAlpha",
+    )
+
+    Box(
+        modifier = modifier
+            .size(170.dp)
+            .then(if (onClick != null) Modifier.clickable(onClick = onClick) else Modifier),
+        contentAlignment = Alignment.Center,
+    ) {
+        // Outer glowing ambient aura
+        Box(
+            modifier = Modifier
+                .size(160.dp * pulseScale)
+                .clip(CircleShape)
+                .background(
+                    Brush.radialGradient(
+                        colors = listOf(
+                            Color(0xFFFF7A3D).copy(alpha = glowAlpha),
+                            Color(0xFFFF5E22).copy(alpha = glowAlpha * 0.45f),
+                            Color.Transparent,
+                        ),
+                    ),
+                ),
+        )
+
+        // Main dark obsidian sphere with luminous metallic border
+        Box(
+            modifier = Modifier
+                .size(118.dp)
+                .clip(CircleShape)
+                .background(
+                    Brush.radialGradient(
+                        colors = listOf(
+                            Color(0xFF231F2E),
+                            Color(0xFF0A090F),
+                        ),
+                    ),
+                )
+                .border(
+                    width = 2.dp,
+                    brush = Brush.linearGradient(
+                        colors = listOf(
+                            Color(0xFFFF7A3D).copy(alpha = 0.85f),
+                            Color(0x33FF5E22),
+                            Color(0xFFFFB84D).copy(alpha = 0.85f),
+                        ),
+                    ),
+                    shape = CircleShape,
+                ),
+            contentAlignment = Alignment.Center,
+        ) {
+            // Overlapping luminous crescent rings (inspiration insignia)
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.Center,
+            ) {
+                Box(
+                    modifier = Modifier
+                        .size(38.dp)
+                        .clip(CircleShape)
+                        .border(3.5.dp, Color(0xFFFFB84D), CircleShape)
+                        .background(Color(0x28FFB84D)),
+                )
+                Spacer(modifier = Modifier.size(0.dp))
+                Box(
+                    modifier = Modifier
+                        .size(38.dp)
+                        .clip(CircleShape)
+                        .border(3.5.dp, Color(0xFFFF5E22), CircleShape)
+                        .background(Color(0x28FF5E22)),
+                )
+            }
+        }
+    }
+}
+
+@Composable
+fun CivicUtilityTagsCluster(
+    modifier: Modifier = Modifier,
+) {
+    val civicTags = listOf(
+        "🗑️ Waste & Sanitation",
+        "💧 Water Works",
+        "💡 Street Lights",
+        "🕳️ Roads & Potholes",
+        "📋 Ticket Status",
+        "⚠️ Emergency 112",
+    )
+
+    FlowRow(
+        modifier = modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.Center,
+        verticalArrangement = Arrangement.spacedBy(8.dp),
+    ) {
+        civicTags.forEach { tag ->
+            Surface(
+                modifier = Modifier.padding(horizontal = 4.dp),
+                shape = CircleShape,
+                color = Color(0x18FFFFFF),
+                border = androidx.compose.foundation.BorderStroke(1.dp, Color(0x33FF5E22)),
+            ) {
+                Text(
+                    text = tag,
+                    modifier = Modifier.padding(horizontal = 14.dp, vertical = 7.dp),
+                    style = MaterialTheme.typography.labelMedium,
+                    fontWeight = FontWeight.Medium,
+                    color = Color(0xFFF1F5F9),
+                )
+            }
+        }
+    }
+}
+
+@Composable
 private fun VoiceAiTopBar(
     isDarkTheme: Boolean,
     onToggleTheme: () -> Unit,
@@ -195,38 +340,51 @@ private fun VoiceAiTopBar(
         color = MaterialTheme.colorScheme.background.copy(alpha = 0.96f),
         tonalElevation = 0.dp,
     ) {
-        Column(
+        Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = VoiceAiLayout.ScreenPadding, vertical = 18.dp),
-            verticalArrangement = Arrangement.spacedBy(10.dp),
+                .padding(horizontal = VoiceAiLayout.ScreenPadding, vertical = 14.dp),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically,
         ) {
             Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(10.dp),
             ) {
-                StatusChip(
-                    text = "SAHAYAK v1.0",
-                    highlighted = true,
-                    accentColor = MaterialTheme.colorScheme.primary,
+                // Insignia
+                Box(
+                    modifier = Modifier
+                        .size(28.dp)
+                        .clip(CircleShape)
+                        .border(2.dp, Color(0xFFFF7A3D), CircleShape)
+                        .background(Color(0x33FF5E22)),
                 )
-                AgentIconControlButton(
-                    icon = if (isDarkTheme) Icons.Outlined.LightMode else Icons.Outlined.DarkMode,
-                    contentDescription = if (isDarkTheme) "Switch to light theme" else "Switch to dark theme",
-                    active = isDarkTheme,
-                    onClick = onToggleTheme,
+                Text(
+                    text = "SAHAYAK.",
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.ExtraBold,
+                    color = Color.White,
                 )
+                Surface(
+                    shape = CircleShape,
+                    color = Color(0x22FF5E22),
+                    border = androidx.compose.foundation.BorderStroke(1.dp, Color(0x44FF5E22)),
+                ) {
+                    Text(
+                        text = "सहायक",
+                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp),
+                        style = MaterialTheme.typography.labelSmall,
+                        fontWeight = FontWeight.SemiBold,
+                        color = Color(0xFFFF7A3D),
+                    )
+                }
             }
-            Text(
-                text = "SAHAYAK (सहायक)",
-                style = MaterialTheme.typography.headlineMedium,
-                color = MaterialTheme.colorScheme.onBackground,
-            )
-            Text(
-                text = "Multilingual Public Utility Voice Assistant (Water, Electricity, Gas & Complaints)",
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.8f),
+
+            AgentIconControlButton(
+                icon = if (isDarkTheme) Icons.Outlined.LightMode else Icons.Outlined.DarkMode,
+                contentDescription = if (isDarkTheme) "Switch to light theme" else "Switch to dark theme",
+                active = isDarkTheme,
+                onClick = onToggleTheme,
             )
         }
     }
@@ -240,13 +398,94 @@ private fun PreSessionScreen(
 ) {
     LazyColumn(
         modifier = Modifier.fillMaxSize(),
-        contentPadding = PaddingValues(top = 24.dp, bottom = 32.dp),
-        verticalArrangement = Arrangement.spacedBy(VoiceAiLayout.SectionSpacing),
+        contentPadding = PaddingValues(top = 16.dp, bottom = 32.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(20.dp),
     ) {
         item {
-            HeroIntroCard(
-                title = "Speak with SAHAYAK",
-                subtitle = "Start a real-time voice session to resolve utility issues, report outages, or track complaints in Hindi, English, or Hinglish.",
+            // Version Pill Badge
+            Surface(
+                shape = CircleShape,
+                color = Color(0x22FF5E22),
+                border = androidx.compose.foundation.BorderStroke(1.dp, Color(0x55FF5E22)),
+            ) {
+                Row(
+                    modifier = Modifier.padding(horizontal = 14.dp, vertical = 6.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .size(7.dp)
+                            .clip(CircleShape)
+                            .background(Color(0xFFFF7A3D)),
+                    )
+                    Text(
+                        text = "Agora AI • Civic Voice v2.0",
+                        style = MaterialTheme.typography.labelSmall,
+                        fontWeight = FontWeight.Bold,
+                        color = Color(0xFFFFB84D),
+                    )
+                }
+            }
+        }
+
+        item {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 12.dp),
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                Text(
+                    text = "Meet! SAHAYAK",
+                    style = MaterialTheme.typography.headlineLarge,
+                    fontWeight = FontWeight.ExtraBold,
+                    color = Color.White,
+                    textAlign = TextAlign.Center,
+                )
+                Text(
+                    text = "Public Voice AI for Civic Utilities.",
+                    style = MaterialTheme.typography.titleLarge,
+                    fontWeight = FontWeight.Bold,
+                    color = Color(0xFFFF7A3D),
+                    textAlign = TextAlign.Center,
+                )
+                Text(
+                    text = "Empowering citizens with natural voice guidance for water supply, streetlights, garbage, potholes, and civic emergencies.",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    textAlign = TextAlign.Center,
+                )
+            }
+        }
+
+        item {
+            // Central Eclipse Voice Orb Stage
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(vertical = 8.dp),
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.spacedBy(18.dp),
+            ) {
+                CivicEclipseOrb(
+                    isSpeaking = false,
+                    onClick = onStartRequested,
+                )
+                CivicUtilityTagsCluster()
+            }
+        }
+
+        item {
+            AgentButton(
+                text = if (uiState.isStarting) "Starting voice session..." else "Start Voice Session",
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp),
+                enabled = uiState.isConfigured && !uiState.isStarting,
+                onClick = onStartRequested,
             )
         }
 
@@ -360,6 +599,15 @@ fun ConnectedSessionScreen(
                 visualState = uiState.agentVisualState,
                 label = uiState.agentStateLabel,
                 turnState = uiState.turnState,
+                isSpeaking = uiState.isAgentSpeaking,
+            )
+        }
+
+        item {
+            LiveCaptionsCard(
+                captionText = uiState.liveAgentCaption,
+                isAgentSpeaking = uiState.isAgentSpeaking,
+                agentState = uiState.agentVisualState,
             )
         }
 
@@ -477,32 +725,112 @@ private fun AgentPresenceCard(
     visualState: AgentVisualState,
     label: String,
     turnState: TurnState,
+    isSpeaking: Boolean = false,
 ) {
     AgentCard(
         modifier = modifier,
-        title = "Agent presence",
-        subtitle = "Current agent state without the extra decoration.",
     ) {
         Column(
-            modifier = Modifier.fillMaxWidth(),
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(vertical = 12.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(18.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp),
         ) {
-            AgentAvatarBadge(
-                name = "Agora AI",
-                modifier = Modifier.size(88.dp),
-                highlightColor = visualState.accentColor(),
+            CivicEclipseOrb(
+                isSpeaking = isSpeaking,
+                isListening = turnState == TurnState.USER_SPEAKING,
             )
             Text(
                 text = label,
                 style = MaterialTheme.typography.titleLarge,
+                fontWeight = FontWeight.Bold,
                 color = MaterialTheme.colorScheme.onSurface,
                 textAlign = TextAlign.Center,
             )
             StatusChip(
                 text = turnState.toReadableLabel(),
                 highlighted = true,
-                accentColor = visualState.accentColor(),
+                accentColor = if (isSpeaking) Color(0xFFFF7A3D) else visualState.accentColor(),
+            )
+        }
+    }
+}
+
+@Composable
+fun LiveCaptionsCard(
+    modifier: Modifier = Modifier,
+    captionText: String?,
+    isAgentSpeaking: Boolean,
+    agentState: AgentVisualState,
+) {
+    val borderColor = if (isAgentSpeaking) {
+        MaterialTheme.colorScheme.primary
+    } else {
+        MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f)
+    }
+
+    val displayedText = captionText?.takeIf { it.isNotBlank() }
+        ?: if (isAgentSpeaking) "SAHAYAK is speaking..." else "Waiting for speech..."
+
+    Card(
+        modifier = modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(20.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surfaceContainerHigh.copy(alpha = 0.85f),
+        ),
+        border = androidx.compose.foundation.BorderStroke(
+            width = if (isAgentSpeaking) 1.5.dp else 1.dp,
+            color = borderColor,
+        ),
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 18.dp, vertical = 14.dp),
+            verticalArrangement = Arrangement.spacedBy(10.dp),
+        ) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                ) {
+                    Surface(
+                        shape = RoundedCornerShape(6.dp),
+                        color = MaterialTheme.colorScheme.primary,
+                    ) {
+                        Text(
+                            text = "CC",
+                            modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
+                            style = MaterialTheme.typography.labelSmall,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.onPrimary,
+                        )
+                    }
+                    Text(
+                        text = "LIVE CAPTIONS",
+                        style = MaterialTheme.typography.labelMedium,
+                        fontWeight = FontWeight.SemiBold,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+
+                StatusChip(
+                    text = if (isAgentSpeaking) "Speaking" else "Standby",
+                    highlighted = isAgentSpeaking,
+                    accentColor = if (isAgentSpeaking) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outline,
+                )
+            }
+
+            Text(
+                text = displayedText,
+                style = MaterialTheme.typography.bodyLarge,
+                fontWeight = if (isAgentSpeaking) FontWeight.Medium else FontWeight.Normal,
+                color = if (isAgentSpeaking) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onSurfaceVariant,
             )
         }
     }

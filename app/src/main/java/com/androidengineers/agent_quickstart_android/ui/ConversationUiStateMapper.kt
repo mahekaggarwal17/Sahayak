@@ -36,6 +36,13 @@ internal object ConversationUiStateMapper {
             it.status != TranscriptTurnStatus.IN_PROGRESS
         }
 
+        val isAgentSpeaking = snapshot.agentState.name == "SPEAKING" ||
+            snapshot.toVisualState() == AgentVisualState.SPEAKING
+        val liveAgentCaption = snapshot.transcriptTurns.lastOrNull {
+            it.speaker == com.androidengineers.agent_quickstart_android.model.TranscriptSpeaker.AGENT &&
+                (it.status == TranscriptTurnStatus.IN_PROGRESS || isAgentSpeaking)
+        }?.text?.takeIf { it.isNotBlank() }
+
         return currentState.copy(
             channelName = snapshot.channelName,
             localUid = snapshot.localRtcUid.takeIf { it != 0 }?.toString(),
@@ -52,6 +59,8 @@ internal object ConversationUiStateMapper {
             micAutoMuted = snapshot.micAutoMuted,
             transcriptHistory = history,
             liveTranscript = liveTranscript,
+            liveAgentCaption = liveAgentCaption,
+            isAgentSpeaking = isAgentSpeaking,
             issues = snapshot.issues,
             inConversation = currentState.inConversation || snapshot.channelName != null,
         )

@@ -68,6 +68,7 @@ class AgoraConversationSessionManager(
 
     private var rtcEngine: RtcEngine? = null
     private var rtmClient: RtmClient? = null
+    private var mediaRecorder: io.agora.rtc2.AgoraMediaRecorder? = null
     private var currentChannel: String? = null
     private var localRtcUid: Int = 0
     private var currentAgentRtcUid: Int = 0
@@ -166,6 +167,12 @@ class AgoraConversationSessionManager(
             runCatching { client.logout(noopRtmCallback()) }
         }
         rtmClient = null
+
+        mediaRecorder?.let { recorder ->
+            runCatching { recorder.stopRecording() }
+            rtcEngine?.let { engine -> runCatching { engine.destroyMediaRecorder(recorder) } }
+        }
+        mediaRecorder = null
 
         rtcEngine?.let { engine ->
             runCatching { engine.leaveChannel() }
@@ -634,6 +641,24 @@ class AgoraConversationSessionManager(
                     operation = "setEnableSpeakerphone",
                     result = engine.setEnableSpeakerphone(true),
                 )
+                runCatching {
+                    val recordingDir = appContext.getExternalFilesDir(null) ?: appContext.filesDir
+                    val recordFile = java.io.File(recordingDir, "call_${channel}.mp4")
+                    val streamInfo = io.agora.rtc2.RecorderStreamInfo(channel, uid, 0)
+                    val recorder = engine.createMediaRecorder(streamInfo)
+                    mediaRecorder = recorder
+                    val config = io.agora.rtc2.AgoraMediaRecorder.MediaRecorderConfiguration(
+                        recordFile.absolutePath,
+                        io.agora.rtc2.AgoraMediaRecorder.CONTAINER_MP4,
+                        io.agora.rtc2.AgoraMediaRecorder.STREAM_TYPE_AUDIO,
+                        3600 * 1000,
+                        1000,
+                    )
+                    recorder?.startRecording(config)
+                    Log.i(TAG, "AgoraMediaRecorder started at ${recordFile.absolutePath}")
+                }.onFailure { error ->
+                    Log.w(TAG, "Could not start AgoraMediaRecorder: ${error.message}")
+                }
             }
             updateSnapshot {
                 it.copy(
