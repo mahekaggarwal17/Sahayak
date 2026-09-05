@@ -207,7 +207,7 @@ private fun VoiceAiTopBar(
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 StatusChip(
-                    text = "console",
+                    text = "SAHAYAK v1.0",
                     highlighted = true,
                     accentColor = MaterialTheme.colorScheme.primary,
                 )
@@ -219,12 +219,12 @@ private fun VoiceAiTopBar(
                 )
             }
             Text(
-                text = "Voice AI for Android",
+                text = "SAHAYAK (सहायक)",
                 style = MaterialTheme.typography.headlineMedium,
                 color = MaterialTheme.colorScheme.onBackground,
             )
             Text(
-                text = "Build and monitor realtime voice sessions with Agora Conversational AI.",
+                text = "Multilingual Public Utility Voice Assistant (Water, Electricity, Gas & Complaints)",
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.8f),
             )
@@ -245,8 +245,8 @@ private fun PreSessionScreen(
     ) {
         item {
             HeroIntroCard(
-                title = "Start a voice session",
-                subtitle = "Connect through the Python quickstart server, join the Agora channel, start the cloud agent, and stream live transcript events.",
+                title = "Speak with SAHAYAK",
+                subtitle = "Start a real-time voice session to resolve utility issues, report outages, or track complaints in Hindi, English, or Hinglish.",
             )
         }
 

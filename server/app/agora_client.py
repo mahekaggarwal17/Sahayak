@@ -10,9 +10,10 @@ from agora_agent.agentkit import generate_convo_ai_token
 from agora_agent.core.api_error import ApiError
 
 from .config import Settings
+from .sahayak_kb import FAILURE_MESSAGE, GREETING_MESSAGE, SAHAYAK_SYSTEM_PROMPT
 
 
-DEFAULT_SYSTEM_PROMPT = """You are Ada, an agentic developer advocate from Agora. Help developers understand and build with Agora Conversational AI. Be concise and technically precise. If you do not know an Agora-specific fact, say so and suggest checking docs.agora.io."""
+DEFAULT_SYSTEM_PROMPT = SAHAYAK_SYSTEM_PROMPT
 
 
 class AgoraUpstreamError(RuntimeError):
@@ -76,15 +77,15 @@ class AgoraClient:
                     "enable_metrics": True,
                 },
             )
-            .with_stt(DeepgramSTT(model=self.settings.asr_model, language="en"))
+            .with_stt(DeepgramSTT(model=self.settings.asr_model, language="multi"))
             .with_llm(
                 OpenAI(
                     model=self.settings.llm_model,
                     system_messages=[
                         {"role": "system", "content": system_prompt or DEFAULT_SYSTEM_PROMPT}
                     ],
-                    greeting_message="Hi there!",
-                    failure_message="Please wait a moment.",
+                    greeting_message=GREETING_MESSAGE,
+                    failure_message=FAILURE_MESSAGE,
                     max_history=15,
                     max_tokens=1024,
                     temperature=0.7,
