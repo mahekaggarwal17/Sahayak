@@ -991,3 +991,14 @@ function escapeHtml(string) {
     };
     return String(string).replace(/[&<>"']/g, s => entityMap[s]);
 }
+
+// ─── FAQ ACCORDION ───────────────────────────────────────────
+function toggleFaq(btn) {
+    const item = btn.closest('.faq-item');
+    const isOpen = item.classList.contains('open');
+    // Close all open items
+    document.querySelectorAll('.faq-item.open').forEach(el => el.classList.remove('open'));
+    // Toggle clicked item
+    if (!isOpen) item.classList.add('open');
+}
+
