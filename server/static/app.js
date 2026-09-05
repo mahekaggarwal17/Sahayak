@@ -170,7 +170,7 @@ async function startCall() {
         btnInterrupt.disabled = false;
 
         updateState("active", "SAHAYAK is ready. Speak in Hindi, English, or Hinglish!");
-        addTranscriptMessage("agent", "Namaste! Main SAHAYAK hoon, aapka public utility assistant. Main paani, bijli ya gas supply jaise services mein aapki kya madad kar sakta hoon?");
+        addTranscriptMessage("agent", "नमस्ते! मैं सहायक हूँ, आपका पब्लिक यूटिलिटी असिस्टेंट। आप कचरा, पानी, बिजली, सड़क या स्ट्रीट लाइट जैसी किसी भी नागरिक समस्या के लिए मुझसे बात कर सकते हैं।");
 
         // Latency check interval
         callStartTime = Date.now();
@@ -317,7 +317,8 @@ function addTranscriptMessage(role, text) {
 function simulatePrompt(text) {
     addTranscriptMessage("user", text);
 
-    if (text.toLowerCase().includes("gas leak")) {
+    const lower = text.toLowerCase();
+    if (lower.includes("gas leak") || lower.includes("electric wire") || lower.includes("emergency") || lower.includes("hazard")) {
         emergencyBanner.classList.remove("hidden");
     } else {
         emergencyBanner.classList.add("hidden");

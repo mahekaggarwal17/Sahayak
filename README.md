@@ -5,7 +5,7 @@
 [![Agora Conversational AI](https://img.shields.io/badge/Agora-Conversational%20AI-orange.svg)](https://docs.agora.io/)
 [![Backend Status](https://img.shields.io/badge/Render-Live-brightgreen.svg)](https://sahayak-backend-0r3f.onrender.com/health)
 
-**SAHAYAK** is a context-aware, multilingual voice AI assistant built for public utility services. It allows citizens to report outages, track complaints, inquire about water, electricity, and gas supply, and receive verified public service guidance in natural **Hindi, English, and Hinglish**.
+**SAHAYAK** is a multilingual, voice-first **Public Utility Assistant**. Its purpose is to make everyday public services and civic utilities easier to access for all citizens. Citizens describe their problem naturally through voice, and Sahayak understands the intent, identifies the relevant service or authority, provides clear guidance, takes action where possible, and helps track the request.
 
 Powered by **Agora Conversational AI**, **Jetpack Compose (Android)**, and **FastAPI**.
 
@@ -32,8 +32,8 @@ Powered by **Agora Conversational AI**, **Jetpack Compose (Android)**, and **Fas
 ┌─────────────────────────────────┐               ┌─────────────────────────────────┐
 │   Live Python Backend (Render)  │ 2. Spawns     │   Agora Conversational AI Cloud │
 │    FastAPI + Session Manager    ├──────────────►│   - Deepgram STT (Multilingual) │
-│    (Holds Agora Credentials)    │    Agent      │   - OpenAI LLM (SAHAYAK KB)     │
-└──────────────┬──────────────────┘               │   - MiniMax / TTS Audio Engine  │
+│    (Holds Agora Credentials)    │    Agent      │   - OpenAI LLM (Sahayak KB)     │
+└──────────────┬──────────────────┘               │   - MiniMax Native Hindi Voice  │
                │                                  └──────────────┬──────────────────┘
                │  3. Returns RTC/RTM Tokens                      │
                ▼                                                 │ 4. Realtime Audio
@@ -45,27 +45,24 @@ Powered by **Agora Conversational AI**, **Jetpack Compose (Android)**, and **Fas
 
 ---
 
-## 💡 Key Features & Capabilities
+## 🌟 Core Civic Capabilities (11 Pillars)
 
-### 1. Multilingual & Natural Hinglish Code-Switching
-- Natural dialogue in Hindi, English, and casual Hinglish (e.g., *"Kal raat se paani nahi aa raha"*, *"Bijli ka bill bahut high aa gaya"*).
-- Empathetic, respectful, and avoids robotic, overly formal language.
+### Core Loop
+$$\text{Citizen speaks} \longrightarrow \text{Sahayak understands} \longrightarrow \text{Identifies service} \longrightarrow \text{Guides citizen} \longrightarrow \text{Takes action} \longrightarrow \text{Tracks request}$$
 
-### 2. Core Public Utility Coverage
-- 💧 **Water Supply Assistance**: Outages, low pressure, contamination, single household vs. area-wide diagnostics.
-- ⚡ **Electricity Assistance**: Power outages, frequent tripping, voltage issues, billing questions.
-- 🔥 **Gas & Public Utility**: Service disruptions, connection queries, and strict **Emergency Protocol** (immediate redirection and safety precautions for gas leaks/fires).
-- 📋 **Complaint & Ticket Lifecycle**: Step-by-step guidance for raising new complaints, checking ticket status, and logging updates.
-
-### 3. Strict Grounding & Anti-Hallucination
-- **Core Principle**: `LISTEN → CLARIFY → CONFIRM → VERIFY → ACT → RESOLVE OR ESCALATE`
-- SAHAYAK never fabricates helpline numbers, ticket numbers, official outage confirmations, or restoration times.
-- If data is unavailable, explicitly states: *"Main is information ko abhi reliably verify nahi kar paa raha hoon."*
-
-### 4. Human Escalation Protocol
-- If an issue is ambiguous, beyond AI scope, or upon caller request, SAHAYAK bundles all context (language, intent, location, timeline, attempted actions) and routes to human support without requiring the caller to repeat themselves.
-
+1. **Understand Citizen's Problem**: Understands natural, informal spoken queries (e.g., *"Mere area mein 3 din se kachra nahi uthaya gaya"*, *"Street light kharab hai"*, *"Road par bada pothole hai"*). Asks only minimum necessary follow-ups, one question at a time.
+2. **Identify Relevant Public Service**: Correctly maps issues to the designated municipal or civic authority (Waste Management/Sanitation, Water Works/Jal Board, PWD/Roads, Municipal Electrical, DISCOM/Power, Drainage).
+3. **Raise Service Tickets**: Collects location and details, confirms with the citizen, generates a standard reference ticket (`SHK-CIVIC-XXXX`), and explains expected resolution turnaround.
+4. **Check Existing Tickets**: Retrieves status, department, submission date, latest update, and next expected action, translating bureaucratic terms into simple spoken language.
+5. **Public Service Discovery**: Explains where to apply, online/offline channels, eligibility, and required documents progressively without overwhelming the citizen.
+6. **Find the Right Place**: Directs citizens to the correct civic facilitation center, municipal ward office, or utility sub-station with operating hours.
+7. **Step-by-Step Guidance**: Breaks down complex civic procedures (such as applying for a new water connection or property tax guidance) into conversational steps.
+8. **Urgent Public Issues**: Immediately detects life-threatening hazards (exposed live wires, sparking transformers, gas leaks, road collapse) and directs citizens to emergency helplines (112) rather than slow ticketing.
+9. **Multilingual Voice-First Experience**: Supports Hindi, English, and natural Hinglish code-switching with authentic native pronunciation (`hindi_female_2_v1`), low conversational latency (~350ms VAD), and short spoken turns.
+10. **Human Escalation**: Seamlessly transitions edge cases to human support while preserving full conversation context (language, intent, location, timeline, actions taken).
+11. **Trust and Safety**: Anti-hallucination guarantee—never invents fake schemes, deadlines, or fees. Never asks for passwords, OTPs, or banking PINs.
 ---
+
 
 ## 📱 Mobile App (Android Client)
 

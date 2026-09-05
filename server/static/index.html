@@ -101,8 +101,8 @@
                 <div id="emergencyBanner" class="alert-banner hidden">
                     <span class="alert-icon">⚠️</span>
                     <div class="alert-content">
-                        <strong>EMERGENCY GAS/FIRE PROTOCOL:</strong>
-                        <span>Immediately evacuate to open air. Do NOT operate switches or flames. Contact local emergency (112) or Gas Helpline (1906).</span>
+                        <strong>URGENT PUBLIC SAFETY PROTOCOL:</strong>
+                        <span>Immediately stay clear of danger. Do NOT touch live wires or ignite flames near gas leaks. Contact emergency services (112) or the 24x7 Civic Emergency Helpline immediately.</span>
                     </div>
                 </div>
 
@@ -110,20 +110,26 @@
                 <div class="quick-prompts">
                     <span class="prompts-title">Try saying or tap to practice:</span>
                     <div class="chips-grid">
-                        <button class="chip" onclick="simulatePrompt('Kal raat se paani nahi aa raha hai.')">
-                            💧 "Kal se paani nahi aa raha"
+                        <button class="chip" onclick="simulatePrompt('Mere area mein 3 din se kachra nahi uthaya gaya.')">
+                            🗑️ "3 din se kachra nahi utha"
                         </button>
-                        <button class="chip" onclick="simulatePrompt('Bijli ka bill bahut high aa gaya hai.')">
-                            ⚡ "Bijli ka bill bahut high aaya"
+                        <button class="chip" onclick="simulatePrompt('Street light kharab hai aur road par andhera hai.')">
+                            💡 "Street light kharab hai"
                         </button>
-                        <button class="chip" onclick="simulatePrompt('Can you check if there is a power outage in Sector 62?')">
-                            📍 "Check outage in Sector 62"
+                        <button class="chip" onclick="simulatePrompt('Road par bahut bada pothole hai, accident ka darr hai.')">
+                            🕳️ "Road par bada pothole hai"
                         </button>
-                        <button class="chip" onclick="simulatePrompt('Complaint already registered hai, status check karna hai.')">
-                            📋 "Check complaint status"
+                        <button class="chip" onclick="simulatePrompt('Paani ki supply kal se nahi aa rahi.')">
+                            💧 "Paani ki supply nahi aa rahi"
                         </button>
-                        <button class="chip chip-danger" onclick="simulatePrompt('Kitchen mein gas leak ki smell aa rahi hai.')">
-                            🔥 "Gas leak emergency"
+                        <button class="chip" onclick="simulatePrompt('Mujhe naye water connection ke liye apply karna hai.')">
+                            🚰 "Naye water connection ke liye apply"
+                        </button>
+                        <button class="chip" onclick="simulatePrompt('Meri complaint number 7429 ka status check karna hai.')">
+                            📋 "Complaint status check karna hai"
+                        </button>
+                        <button class="chip chip-danger" onclick="simulatePrompt('Road par live electric wire gir gaya hai, emergency hai!')">
+                            ⚠️ "Live electric wire fallen"
                         </button>
                     </div>
                 </div>
@@ -134,7 +140,7 @@
                 <!-- Tab Navigation -->
                 <div class="tabs-nav">
                     <button id="tabTranscriptBtn" class="tab-btn active" onclick="switchTab('transcript')">Live Conversation</button>
-                    <button id="tabKbBtn" class="tab-btn" onclick="switchTab('kb')">Knowledge Base & Guidelines</button>
+                    <button id="tabKbBtn" class="tab-btn" onclick="switchTab('kb')">Civic Knowledge Base</button>
                     <button id="tabMetricsBtn" class="tab-btn" onclick="switchTab('metrics')">Session Metrics</button>
                 </div>
 
@@ -147,8 +153,9 @@
                                 <span class="msg-time">Just now</span>
                             </div>
                             <div class="bubble-body">
-                                <strong>Welcome to SAHAYAK.</strong><br>
-                                Tap <strong>Start Voice Session</strong> to speak directly with the AI assistant in Hindi, English, or Hinglish.
+                                <strong>Welcome to SAHAYAK (सहायक).</strong><br>
+                                Voice-first Public Utility Assistant for Waste Management, Street Lights, Potholes, Water Supply, Electricity & Civic Services.<br>
+                                Tap <strong>Start Voice Session</strong> to speak naturally in Hindi, English, or Hinglish.
                             </div>
                         </div>
                     </div>
@@ -158,24 +165,28 @@
                 <div id="tabKb" class="tab-content">
                     <div class="kb-viewer">
                         <div class="kb-category">
-                            <h3>💧 1. Water Supply Assistance</h3>
-                            <p>Assists with outages, low pressure, and pipeline leaks. Verifies whether an issue affects one household or multiple neighboring buildings before escalating.</p>
+                            <h3>🗑️ 1. Waste Management & Sanitation</h3>
+                            <p>Assists with uncollected garbage, overflowing community bins, and road sweeping. Collects landmark, confirms details, and logs ticket with Nagar Nigam Sanitation Dept.</p>
                         </div>
                         <div class="kb-category">
-                            <h3>⚡ 2. Electricity Assistance</h3>
-                            <p>Addresses power cuts, voltage fluctuations, billing concerns, and meter issues. Requires verified data before declaring official outages.</p>
+                            <h3>💡 2. Street Lighting & Electrical</h3>
+                            <p>Addresses non-functional or flickering streetlights, dark road stretches, and open electric junction boxes for Municipal Electrical repair.</p>
                         </div>
                         <div class="kb-category">
-                            <h3>🔥 3. Gas & Emergency Safety</h3>
-                            <p>Handles service interruptions and safety risks. For gas leaks or fire hazards, triggers immediate safety protocol and emergency escalation.</p>
+                            <h3>🕳️ 3. Roads & Potholes</h3>
+                            <p>Takes reports on severe potholes, damaged asphalt, cave-ins, and broken dividers, routing directly to PWD / Roads Division.</p>
                         </div>
                         <div class="kb-category">
-                            <h3>📋 4. Complaint Management</h3>
-                            <p>Guided lifecycle for raising new complaints, checking ticket status, and ticket updates. Follows strict confirmation rules before creating tickets.</p>
+                            <h3>💧 4. Water Supply & Connections</h3>
+                            <p>Handles water supply cuts, low pressure, dirty water complaints, and provides step-by-step guidance for applying for new piped water connections.</p>
                         </div>
                         <div class="kb-category">
-                            <h3>🔒 5. Privacy & Grounding Rules</h3>
-                            <p>Never requests passwords, OTPs, or banking PINs. Never fabricates numbers, restoration times, or fees.</p>
+                            <h3>📋 5. Ticket Registration & Tracking</h3>
+                            <p>Generates reference tickets (format: <code>SHK-CIVIC-XXXX</code>) and translates technical municipal statuses into clear conversational explanations.</p>
+                        </div>
+                        <div class="kb-category">
+                            <h3>⚠️ 6. Urgent Public Issues & Safety</h3>
+                            <p>Identifies live electric wires, gas leaks, and open manholes immediately. Advises safety precautions and guides to 112 emergency helpline.</p>
                         </div>
                     </div>
                 </div>
