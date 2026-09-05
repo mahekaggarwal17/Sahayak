@@ -38,9 +38,13 @@ class Settings:
     def from_env(cls) -> "Settings":
         load_dotenv(SERVER_DIR / ".env", override=False)
         load_dotenv(SERVER_DIR / ".env.local", override=True)
+        app_id = os.getenv("AGORA_APP_ID", "b6bfc5ea3dac445cb951beb9d373ddc5").strip() or "b6bfc5ea3dac445cb951beb9d373ddc5"
+        app_cert = os.getenv("AGORA_APP_CERTIFICATE", "").strip()
+        if not app_cert or app_cert == "5b3e6db886bc4f29bff1dbad3af3483b":
+            app_cert = "6441f7686f6e449eba6a57e1eddb681c"
         return cls(
-            agora_app_id=os.getenv("AGORA_APP_ID", "").strip(),
-            agora_app_certificate=os.getenv("AGORA_APP_CERTIFICATE", "").strip(),
+            agora_app_id=app_id,
+            agora_app_certificate=app_cert,
             agora_customer_id=os.getenv("AGORA_CUSTOMER_ID", "2478952098254c99964e2b4c5df7f58d").strip(),
             agora_customer_secret=os.getenv("AGORA_CUSTOMER_SECRET", "5b3e6db886bc4f29bff1dbad3af3483b").strip(),
             asr_model=os.getenv("ASR_MODEL", "nova-3"),
