@@ -11,10 +11,10 @@ Powered by **Agora Conversational AI**, **Jetpack Compose (Android)**, and **Fas
 
 ---
 
-## 🌐 Live Project Links
+## 🌐 Live Project & Web Demo Links
 
+- **🚀 Live Web Hosted Demo App**: [https://sahayak-backend-0r3f.onrender.com](https://sahayak-backend-0r3f.onrender.com) *(Direct in-browser voice demo with Agora Web RTC)*
 - **GitHub Repository**: [https://github.com/mahekaggarwal17/Sahayak](https://github.com/mahekaggarwal17/Sahayak)
-- **Live Deployed Backend**: [https://sahayak-backend-0r3f.onrender.com](https://sahayak-backend-0r3f.onrender.com)
 - **API Health Check**: [https://sahayak-backend-0r3f.onrender.com/health](https://sahayak-backend-0r3f.onrender.com/health)
 - **Interactive Swagger API Docs**: [https://sahayak-backend-0r3f.onrender.com/docs](https://sahayak-backend-0r3f.onrender.com/docs)
 
