@@ -98,6 +98,7 @@ class AgoraClient:
                 MiniMaxTTS(
                     model=self.settings.tts_model,
                     voice_id=self.settings.tts_voice_id,
+                    language_boost="Hindi",
                 )
             )
         )
