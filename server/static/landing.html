@@ -1,74 +1,60 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>SAHAYAK — Civic Voice Intelligence for India</title>
-<meta name="description" content="SAHAYAK is India's first multilingual civic voice AI. Report water cuts, potholes, power outages and more in Hindi, English or Hinglish instantly.">
+<meta name="description" content="India first multilingual civic voice AI. Report water cuts, potholes, power outages in Hindi, English or Hinglish instantly.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400&family=JetBrains+Mono:wght@300&display=swap" rel="stylesheet">
 <style>
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
-html,body{height:100%;overflow:hidden}
+html,body{width:100%;height:100%}
 html{font-size:16px}
-body{background:#0A0A0A;color:#FFF;font-family:'Inter',system-ui,sans-serif;font-weight:300;-webkit-font-smoothing:antialiased}
+body{background:#0A0A0A;color:#FFF;font-family:'Inter',system-ui,sans-serif;font-weight:300;-webkit-font-smoothing:antialiased;overflow:hidden}
 :root{
-  --ground:#0A0A0A;--ground2:#0F0F11;--panel:#18181B;
-  --ink:#FFF;--muted:#71717A;
   --accent:#6366F1;--accent-press:#4338CA;
-  --hair:rgba(255,255,255,.10);--hair2:rgba(255,255,255,.06);
+  --muted:#71717A;--hair:rgba(255,255,255,.10);
   --max:1152px;--gutter:clamp(20px,5vw,64px);
 }
 a{color:inherit;text-decoration:none}
-button{font-family:inherit;cursor:pointer;border:none;background:none}
 .mono{font-family:'JetBrains Mono',monospace;font-weight:300;font-size:11px;letter-spacing:.1em;text-transform:uppercase}
 .wrap{max-width:var(--max);margin:0 auto;padding:0 var(--gutter)}
-
-/* INTRO */
-#intro{position:fixed;inset:0;background:var(--ground);z-index:9999;display:flex;align-items:center;justify-content:center;pointer-events:none}
-#intro-word{font-size:clamp(2.2rem,7vw,5rem);letter-spacing:-.05em;font-weight:300;color:var(--ink);opacity:0;transform:translateY(14px);transition:opacity .5s ease,transform .5s ease}
+#intro{position:fixed;inset:0;background:#0A0A0A;z-index:9999;display:flex;align-items:center;justify-content:center;pointer-events:none}
+#intro-word{font-size:clamp(2.2rem,7vw,5rem);letter-spacing:-.05em;font-weight:300;color:#FFF;opacity:0;transform:translateY(14px);transition:opacity .5s ease,transform .5s ease}
 #intro-word.show{opacity:1;transform:translateY(0)}
 #intro-word.lift{opacity:0;transform:translateY(-20px)}
-#intro.fade-out{opacity:0;transition:opacity .45s ease}
 @media(prefers-reduced-motion:reduce){#intro{display:none!important}}
-
-/* NAV */
 nav{position:fixed;top:0;left:0;right:0;z-index:100;height:52px;border-bottom:1px solid var(--hair);background:rgba(10,10,10,.88);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);display:flex;align-items:center}
 .nav-inner{width:100%;max-width:var(--max);margin:0 auto;padding:0 var(--gutter);display:flex;align-items:center;justify-content:space-between}
 .nav-brand{display:flex;align-items:baseline;gap:6px;font-size:14px;letter-spacing:-.02em}
-.nav-brand span:first-child{color:var(--accent)}
+.nav-accent{color:var(--accent)}
 .nav-links{display:flex;gap:28px}
 .nav-links a{font-size:12px;color:var(--muted);letter-spacing:.02em;transition:color .2s}
-.nav-links a:hover{color:var(--ink)}
-.nav-cta{padding:7px 16px;border:1px solid var(--hair);font-size:12px;letter-spacing:.04em;color:var(--ink);background:transparent;transition:border-color .2s,background .2s}
+.nav-links a:hover{color:#FFF}
+.nav-cta{padding:7px 16px;border:1px solid var(--hair);font-size:12px;letter-spacing:.04em;color:#FFF;background:transparent;transition:border-color .2s,background .2s}
 .nav-cta:hover{border-color:var(--accent);background:rgba(99,102,241,.08)}
-
-/* HERO */
-#hero{position:relative;height:100svh;overflow:hidden;display:flex;flex-direction:column;justify-content:flex-end}
+#hero{position:relative;width:100%;height:100vh;overflow:hidden;display:flex;flex-direction:column;justify-content:flex-end}
 #hero-canvas{position:absolute;inset:0;width:100%;height:100%}
-#hero-veil{position:absolute;inset:0;pointer-events:none;background:linear-gradient(to bottom,transparent 20%,rgba(10,10,10,.94) 100%)}
+#hero-veil{position:absolute;inset:0;pointer-events:none;background:linear-gradient(to bottom,transparent 20%,rgba(10,10,10,.95) 100%)}
 .hero-content{position:relative;z-index:2;padding:0 var(--gutter) clamp(36px,6vw,80px);max-width:var(--max);margin:0 auto;width:100%}
 .hero-meta{display:flex;align-items:center;gap:16px;margin-bottom:22px;color:rgba(255,255,255,.74);border-top:1px solid var(--hair);padding-top:16px}
 .hero-meta-sep{width:1px;height:10px;background:var(--hair)}
-.hero-headline{font-size:clamp(4.5rem,16vw,14rem);line-height:.82;letter-spacing:-.05em;font-weight:300;overflow:hidden;margin-bottom:28px}
-.hero-headline .glyph{display:inline-block;opacity:0;transform:translateY(.32em);transition:opacity .5s ease,transform .5s cubic-bezier(.16,1,.3,1)}
-.hero-headline .glyph.space{width:.3em}
-.hero-headline .glyph.revealed{opacity:1;transform:translateY(0)}
-.hero-sub{max-width:38ch;font-size:15px;line-height:1.7;color:rgba(255,255,255,.62);margin-bottom:32px}
-.hero-btns{display:flex;gap:12px;flex-wrap:wrap}
+.hero-headline{font-size:clamp(4.5rem,16vw,14rem);line-height:.82;letter-spacing:-.05em;font-weight:300;margin-bottom:28px}
+.glyph{display:inline-block;opacity:0;transform:translateY(.32em);transition:opacity .5s ease,transform .5s cubic-bezier(.16,1,.3,1)}
+.glyph.on{opacity:1;transform:translateY(0)}
+.hero-sub{max-width:38ch;font-size:15px;line-height:1.7;color:rgba(255,255,255,.62);margin-bottom:32px;opacity:0;transition:opacity 1s ease}
+.hero-btns{display:flex;gap:12px;flex-wrap:wrap;opacity:0;transition:opacity 1s ease .2s}
+.fade-in{opacity:1!important}
 .btn-primary{padding:13px 28px;background:var(--accent);color:#fff;font-size:13px;letter-spacing:.04em;transition:background .18s;display:inline-block}
 .btn-primary:hover{background:var(--accent-press)}
-.btn-ghost{padding:12px 27px;border:1px solid var(--hair);color:var(--ink);font-size:13px;letter-spacing:.04em;transition:border-color .2s;display:inline-block}
+.btn-ghost{padding:12px 27px;border:1px solid var(--hair);color:#FFF;font-size:13px;letter-spacing:.04em;transition:border-color .2s;display:inline-block}
 .btn-ghost:hover{border-color:rgba(255,255,255,.3)}
-
-/* REVEALS */
-.reveal{opacity:0;transform:translateY(20px);transition:opacity .9s cubic-bezier(.16,1,.3,1),transform .9s cubic-bezier(.16,1,.3,1)}
-.reveal.is-visible{opacity:1;transform:translateY(0)}
 @media(prefers-reduced-motion:reduce){
-  .reveal,.reveal.is-visible{opacity:1!important;transform:none!important;transition:none!important}
-  .hero-headline .glyph,.hero-headline .glyph.revealed{opacity:1!important;transform:none!important;transition:none!important}
-  *{animation-duration:.001ms!important;transition-duration:.001ms!important}
+  .glyph,.glyph.on{opacity:1!important;transform:none!important;transition:none!important}
+  .hero-sub,.hero-btns,.hero-sub.fade-in,.hero-btns.fade-in{opacity:1!important;transition:none!important}
+  *{animation-duration:.001ms!important}
 }
 </style>
 </head>
@@ -78,12 +64,12 @@ nav{position:fixed;top:0;left:0;right:0;z-index:100;height:52px;border-bottom:1p
 
 <nav>
   <div class="nav-inner">
-    <div class="nav-brand mono"><span>SAHAYAK</span><span style="color:rgba(255,255,255,.35)"> सहायक</span></div>
+    <div class="nav-brand mono"><span class="nav-accent">SAHAYAK</span><span style="color:rgba(255,255,255,.32)"> सहायक</span></div>
     <div class="nav-links mono">
       <a href="https://github.com/mahekaggarwal17/Sahayak" target="_blank" rel="noopener">GitHub</a>
       <a href="/docs" target="_blank">API Docs</a>
     </div>
-    <a href="/app" class="nav-cta mono">Open App →</a>
+    <a href="/app" class="nav-cta mono">Open App &rarr;</a>
   </div>
 </nav>
 
@@ -91,16 +77,16 @@ nav{position:fixed;top:0;left:0;right:0;z-index:100;height:52px;border-bottom:1p
   <canvas id="hero-canvas" aria-hidden="true"></canvas>
   <div id="hero-veil" aria-hidden="true"></div>
   <div class="hero-content wrap">
-    <div class="hero-meta mono reveal">
+    <div class="hero-meta mono">
       <span>Agora Build-a-thon 2025</span>
       <div class="hero-meta-sep"></div>
       <span>Public Utility AI</span>
       <div class="hero-meta-sep"></div>
-      <span>v1.0 · Hindi + English + Hinglish</span>
+      <span>v1.0 &middot; Hindi + English + Hinglish</span>
     </div>
     <h1 class="hero-headline" id="hero-headline" aria-label="Sahayak"></h1>
-    <p class="hero-sub reveal">Describe your municipal problem naturally — water cuts, broken streetlights, dangerous potholes, garbage backlogs — in any mix of Hindi, English and Hinglish. SAHAYAK listens, registers and responds instantly.</p>
-    <div class="hero-btns reveal">
+    <p class="hero-sub" id="hero-sub">Describe your municipal problem naturally &mdash; water cuts, broken streetlights, dangerous potholes, garbage backlogs &mdash; in any mix of Hindi, English and Hinglish. SAHAYAK listens, registers and responds instantly.</p>
+    <div class="hero-btns" id="hero-btns">
       <a href="/app" class="btn-primary mono">Start a Voice Session</a>
       <a href="https://github.com/mahekaggarwal17/Sahayak" target="_blank" rel="noopener" class="btn-ghost mono">View on GitHub</a>
     </div>
@@ -108,142 +94,71 @@ nav{position:fixed;top:0;left:0;right:0;z-index:100;height:52px;border-bottom:1p
 </section>
 
 <script>
-  <div class="wrap">
-    <div class="band-eyebrow mono reveal"><span>01 · Engine</span><div class="band-eyebrow-rule"></div></div>
-    <div class="band-head reveal">
-      <h2 class="band-title">Four-layer voice intelligence stack.</h2>
-      <p class="band-lede">Every spoken word passes through a purpose-built pipeline: multilingual transcription, voice activity detection, real-time captioning and a civic domain classifier that routes each complaint to the right department.</p>
-    </div>
-    <div class="engine-grid reveal">
-      <div class="engine-tile">
-        <canvas class="tile-canvas" id="tc0"></canvas>
-        <span class="tile-index mono">01</span>
-        <div class="tile-title">Speech Transcription</div>
-        <p class="tile-desc">Deepgram Nova-3 multilingual ASR converts Hindi, English and Hinglish speech in under 400 ms, preserving code-switches mid-sentence.</p>
-      </div>
-      <div class="engine-tile">
-        <canvas class="tile-canvas" id="tc1"></canvas>
-        <span class="tile-index mono">02</span>
-        <div class="tile-title">Voice Activity Detection</div>
-        <p class="tile-desc">A frame-by-frame energy-and-ZCR detector isolates speech from street noise, rain and ambient city audio before the packet leaves the device.</p>
-      </div>
-      <div class="engine-tile">
-        <canvas class="tile-canvas" id="tc2"></canvas>
-        <span class="tile-index mono">03</span>
-        <div class="tile-title">Live Captions</div>
-        <p class="tile-desc">Every word SAHAYAK speaks is streamed as a real-time caption over Agora RTM 2.x, so citizens on slow networks always read what they heard.</p>
-      </div>
-      <div class="engine-tile">
-        <canvas class="tile-canvas" id="tc3"></canvas>
-        <span class="tile-index mono">04</span>
-        <div class="tile-title">Civic Intent Router</div>
-        <p class="tile-desc">GPT-4o classifies every complaint into one of six civic domains, assigns a ticket number and selects the correct municipal department in one pass.</p>
-      </div>
-    </div>
-  </div>
-</section>
+var HEADLINE = 'Sahayak';
 
-<section id="spectrum" style="padding:clamp(48px,7vw,96px) 0">
-  <div class="wrap">
-    <div class="band-eyebrow mono reveal"><span>02 · Multilingual Coverage</span><div class="band-eyebrow-rule"></div></div>
-    <div class="band-head reveal">
-      <h2 class="band-title">One model, the full language spectrum.</h2>
-      <p class="band-lede">SAHAYAK does not translate first and understand second. It recognises the highlighted domain directly from mixed-language speech — the selected band stays lit regardless of which language fills it.</p>
-    </div>
-  </div>
-  <div class="spectrum-band reveal" id="spectrum-band">
-    <canvas id="spec-canvas" aria-hidden="true"></canvas>
-    <span class="spec-caption mono">Language confidence · 72 frequency bins</span>
-    <span class="spec-hz mono" id="spec-hz">—</span>
-  </div>
-</section>
+/* Build glyphs */
+(function(){
+  var el = document.getElementById('hero-headline');
+  for(var i=0;i<HEADLINE.length;i++){
+    var s=document.createElement('span');
+    s.className='glyph';s.textContent=HEADLINE[i];el.appendChild(s);
+  }
+})();
 
+function revealHero(){
+  document.querySelectorAll('.glyph').forEach(function(g,i){
+    g.style.transitionDelay=(i*55)+'ms';
+    requestAnimationFrame(function(){g.classList.add('on');});
+  });
+  setTimeout(function(){
+    document.getElementById('hero-sub').classList.add('fade-in');
+    document.getElementById('hero-btns').classList.add('fade-in');
+  },100);
+}
 
-
-<script>
-/* INTRO */
 (function(){
   var reduced=window.matchMedia('(prefers-reduced-motion:reduce)').matches;
-  if(reduced)return;
+  if(reduced){revealHero();return;}
   var intro=document.getElementById('intro');
   var word=document.getElementById('intro-word');
-  setTimeout(function(){word.classList.add('show')},220);
-  setTimeout(function(){word.classList.remove('show');word.classList.add('lift')},1500);
-  setTimeout(function(){intro.classList.add('fade-out')},2050);
-  setTimeout(function(){intro.style.visibility='hidden';intro.style.display='none';startHeroGlyphs()},2550);
+  setTimeout(function(){word.classList.add('show');},220);
+  setTimeout(function(){word.classList.remove('show');word.classList.add('lift');},1500);
+  setTimeout(function(){intro.style.opacity='0';intro.style.transition='opacity .45s ease';},2050);
+  setTimeout(function(){intro.style.display='none';revealHero();},2550);
 })();
 
-/* HEADLINE GLYPHS */
-var HEADLINE='Sahayak';
+/* WebGL ribbons */
 (function(){
-  var el=document.getElementById('hero-headline');
-  el.innerHTML='';
-  for(var i=0;i<HEADLINE.length;i++){
-    var ch=HEADLINE[i];
-    var span=document.createElement('span');
-    if(ch===' '){span.className='glyph space';span.innerHTML='&nbsp;';}
-    else{span.className='glyph';span.textContent=ch;}
-    el.appendChild(span);
-  }
-})();
-
-function startHeroGlyphs(){
-  var glyphs=document.querySelectorAll('#hero-headline .glyph');
-  glyphs.forEach(function(g,i){
-    g.style.transitionDelay=(i*42)+'ms';
-    requestAnimationFrame(function(){g.classList.add('revealed')});
-  });
-}
-if(window.matchMedia('(prefers-reduced-motion:reduce)').matches){startHeroGlyphs();}
-
-/* WEBGL HERO */
-(function(){
-  var canvas=document.getElementById('hero-canvas');
+  var c=document.getElementById('hero-canvas');
   var gl=null;
-  try{gl=canvas.getContext('webgl')||canvas.getContext('experimental-webgl');}catch(e){}
-  if(!gl){initFallback(canvas);return;}
-  var vert='attribute vec2 a_pos;void main(){gl_Position=vec4(a_pos,0,1);}';
-  var frag='precision mediump float;uniform vec2 u_res;uniform float u_t;float ribbon(vec2 uv,float phase,float f1,float f2){float y=.50+.12*sin(uv.x*f1+u_t+phase)+.07*sin(uv.x*f2+u_t*1.3+phase*1.7);return smoothstep(.09,.0,abs(uv.y-y));}void main(){vec2 uv=gl_FragCoord.xy/u_res;vec3 c=vec3(0);c+=vec3(.388,.400,.945)*ribbon(uv,0.0,2.1,3.7);c+=vec3(.600,.270,.900)*ribbon(uv,2.09,1.7,4.2);c+=vec3(.130,.820,.880)*ribbon(uv,4.18,2.5,2.9);float cx=distance(uv,vec2(.5,.5));c+=vec3(.1,.1,.25)*smoothstep(.7,.0,cx)*.4;gl_FragColor=vec4(c,clamp(c.r+c.g+c.b,0.,1.));}';
-  function compile(type,src){var s=gl.createShader(type);gl.shaderSource(s,src);gl.compileShader(s);return s;}
-  var prog=gl.createProgram();
-  gl.attachShader(prog,compile(gl.VERTEX_SHADER,vert));
-  gl.attachShader(prog,compile(gl.FRAGMENT_SHADER,frag));
-  gl.linkProgram(prog);gl.useProgram(prog);
-  var buf=gl.createBuffer();
-  gl.bindBuffer(gl.ARRAY_BUFFER,buf);
+  try{gl=c.getContext('webgl')||c.getContext('experimental-webgl');}catch(e){}
+  if(!gl){fallback(c);return;}
+  var v='attribute vec2 a;void main(){gl_Position=vec4(a,0,1);}';
+  var f='precision mediump float;uniform vec2 R;uniform float T;float rib(vec2 uv,float ph,float f1,float f2){float y=.5+.12*sin(uv.x*f1+T+ph)+.07*sin(uv.x*f2+T*1.3+ph*1.7);return smoothstep(.09,.0,abs(uv.y-y));}void main(){vec2 uv=gl_FragCoord.xy/R;vec3 col=vec3(0);col+=vec3(.388,.4,.945)*rib(uv,0.,2.1,3.7);col+=vec3(.6,.27,.9)*rib(uv,2.09,1.7,4.2);col+=vec3(.13,.82,.88)*rib(uv,4.18,2.5,2.9);col+=vec3(.1,.1,.25)*smoothstep(.7,.0,distance(uv,vec2(.5)))*.4;gl_FragColor=vec4(col,clamp(col.r+col.g+col.b,0.,1.));}';
+  function sh(type,src){var s=gl.createShader(type);gl.shaderSource(s,src);gl.compileShader(s);return s;}
+  var p=gl.createProgram();
+  gl.attachShader(p,sh(gl.VERTEX_SHADER,v));gl.attachShader(p,sh(gl.FRAGMENT_SHADER,f));
+  gl.linkProgram(p);gl.useProgram(p);
+  var buf=gl.createBuffer();gl.bindBuffer(gl.ARRAY_BUFFER,buf);
   gl.bufferData(gl.ARRAY_BUFFER,new Float32Array([-1,-1,1,-1,-1,1,1,1]),gl.STATIC_DRAW);
-  var loc=gl.getAttribLocation(prog,'a_pos');
-  gl.enableVertexAttribArray(loc);gl.vertexAttribPointer(loc,2,gl.FLOAT,false,0,0);
-  var uRes=gl.getUniformLocation(prog,'u_res');
-  var uT=gl.getUniformLocation(prog,'u_t');
-  var raf;
-  function resize(){var dpr=Math.min(devicePixelRatio,2);canvas.width=canvas.offsetWidth*dpr;canvas.height=canvas.offsetHeight*dpr;gl.viewport(0,0,canvas.width,canvas.height);}
+  var al=gl.getAttribLocation(p,'a');gl.enableVertexAttribArray(al);gl.vertexAttribPointer(al,2,gl.FLOAT,false,0,0);
+  var uR=gl.getUniformLocation(p,'R'),uT=gl.getUniformLocation(p,'T');
+  function resize(){var dpr=Math.min(devicePixelRatio,2);c.width=c.offsetWidth*dpr;c.height=c.offsetHeight*dpr;gl.viewport(0,0,c.width,c.height);}
   resize();window.addEventListener('resize',resize);
-  function frame(t){raf=requestAnimationFrame(frame);gl.uniform2f(uRes,canvas.width,canvas.height);gl.uniform1f(uT,t*.0005);gl.enable(gl.BLEND);gl.blendFunc(gl.SRC_ALPHA,gl.ONE);gl.clearColor(0,0,0,0);gl.clear(gl.COLOR_BUFFER_BIT);gl.drawArrays(gl.TRIANGLE_STRIP,0,4);}
-  raf=requestAnimationFrame(frame);
-  if(window.matchMedia('(prefers-reduced-motion:reduce)').matches)cancelAnimationFrame(raf);
+  var raf;
+  function frame(t){raf=requestAnimationFrame(frame);gl.uniform2f(uR,c.width,c.height);gl.uniform1f(uT,t*.0005);gl.enable(gl.BLEND);gl.blendFunc(gl.SRC_ALPHA,gl.ONE);gl.clearColor(0,0,0,0);gl.clear(gl.COLOR_BUFFER_BIT);gl.drawArrays(gl.TRIANGLE_STRIP,0,4);}
+  if(!window.matchMedia('(prefers-reduced-motion:reduce)').matches)raf=requestAnimationFrame(frame);
 
-  function initFallback(c){
-    var ctx=c.getContext('2d');
-    function rsz(){var d=Math.min(devicePixelRatio,2);c.width=c.offsetWidth*d;c.height=c.offsetHeight*d;}
+  function fallback(cv){
+    var ctx=cv.getContext('2d');
+    function rsz(){var d=Math.min(devicePixelRatio,2);cv.width=cv.offsetWidth*d;cv.height=cv.offsetHeight*d;}
     rsz();window.addEventListener('resize',rsz);
-    var ribbons=[{color:'rgba(99,102,241,.7)',phase:0,f1:2.1,f2:3.7},{color:'rgba(140,70,230,.7)',phase:2.09,f1:1.7,f2:4.2},{color:'rgba(34,211,238,.7)',phase:4.18,f1:2.5,f2:2.9}];
+    var ribs=[{col:'rgba(99,102,241,.75)',ph:0,f1:2.1,f2:3.7},{col:'rgba(140,70,230,.75)',ph:2.09,f1:1.7,f2:4.2},{col:'rgba(34,211,238,.75)',ph:4.18,f1:2.5,f2:2.9}];
     var r2;
-    function draw(t){r2=requestAnimationFrame(draw);var w=c.width,h=c.height,T=t*.0005;ctx.clearRect(0,0,w,h);ribbons.forEach(function(rb){ctx.beginPath();ctx.strokeStyle=rb.color;ctx.lineWidth=h*.14;ctx.lineCap='round';for(var x=0;x<=w;x+=4){var ux=x/w,y=h*(.5+.12*Math.sin(ux*rb.f1+T+rb.phase)+.07*Math.sin(ux*rb.f2+T*1.3+rb.phase*1.7));x===0?ctx.moveTo(x,y):ctx.lineTo(x,y);}ctx.stroke();});}
-    r2=requestAnimationFrame(draw);
-    if(window.matchMedia('(prefers-reduced-motion:reduce)').matches)cancelAnimationFrame(r2);
+    function draw(t){r2=requestAnimationFrame(draw);var w=cv.width,h=cv.height,T=t*.0005;ctx.clearRect(0,0,w,h);ribs.forEach(function(rb){ctx.beginPath();ctx.strokeStyle=rb.col;ctx.lineWidth=h*.13;ctx.lineCap='round';for(var x=0;x<=w;x+=4){var ux=x/w,y=h*(.5+.12*Math.sin(ux*rb.f1+T+rb.ph)+.07*Math.sin(ux*rb.f2+T*1.3+rb.ph*1.7));x===0?ctx.moveTo(x,y):ctx.lineTo(x,y);}ctx.stroke();});}
+    if(!window.matchMedia('(prefers-reduced-motion:reduce)').matches)r2=requestAnimationFrame(draw);
   }
-})();
-
-/* SCROLL REVEALS */
-(function(){
-  var reduced=window.matchMedia('(prefers-reduced-motion:reduce)').matches;
-  var els=document.querySelectorAll('.reveal');
-  if(reduced){els.forEach(function(e){e.classList.add('is-visible')});return;}
-  var obs=new IntersectionObserver(function(entries){entries.forEach(function(e){if(e.isIntersecting){e.target.classList.add('is-visible');obs.unobserve(e.target);}});},{threshold:.16,rootMargin:'0px 0px -8% 0px'});
-  els.forEach(function(e){obs.observe(e);});
 })();
 </script>
 </body>
 </html>
-
