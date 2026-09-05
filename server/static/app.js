@@ -957,6 +957,18 @@ function switchTab(tabId) {
 
     if (tabId === "storage") loadRecordings();
     if (tabId === "tickets") loadTickets();
+
+    // ── Sync top nav to match the selected workspace tab ──
+    const tabToNav = {
+        transcript: "navVoice",
+        storage:    "navStorage",
+        kb:         "navKb",
+        tickets:    "navTickets",
+        metrics:    "navMetrics",
+    };
+    document.querySelectorAll(".nav-tab").forEach(t => t.classList.remove("active"));
+    const matchingNav = document.getElementById(tabToNav[tabId]);
+    if (matchingNav) matchingNav.classList.add("active");
 }
 
 function switchMainTab(tabId) {
