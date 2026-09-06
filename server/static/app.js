@@ -19,6 +19,7 @@ let currentAssistantCaption = "";
 let currentSpeaker = "agent";
 let previousTurnCaption = "";
 let speechRecognitionInstance = null;
+let isSpeechRecognitionAllowed = true;
 let callTranscripts = []; // Array of { speaker, text, timestamp, turn_id }
 let allRecordingsData = [];
 
@@ -535,6 +536,21 @@ async function startCall() {
         callTranscripts = [];
         recordedAudioChunks = [];
 
+        // Unlock browser audio / AudioContext immediately on user gesture (non-blocking)
+        if (window.AudioContext || window.webkitAudioContext) {
+            try {
+                if (!audioContext || audioContext.state === "closed") {
+                    const AudioCtx = window.AudioContext || window.webkitAudioContext;
+                    audioContext = new AudioCtx();
+                }
+                if (audioContext.state === "suspended") {
+                    audioContext.resume().catch(e => console.debug("AudioContext resume note:", e));
+                }
+            } catch (ctxErr) {
+                console.debug("AudioContext unlock note:", ctxErr);
+            }
+        }
+
         // 1. Bootstrap conversation session from backend
         const bootstrapRes = await fetch("/v1/conversation/bootstrap", {
             method: "POST",
@@ -564,7 +580,36 @@ async function startCall() {
                 if (mediaType === "audio") {
                     await client.subscribe(user, mediaType);
                     remoteAudioTrack = user.audioTrack;
-                    remoteAudioTrack.play();
+                    if (remoteAudioTrack) {
+                        try {
+                            remoteAudioTrack.setVolume(100);
+                            remoteAudioTrack.play();
+                            console.log("Remote audio playing through Agora Web RTC track.");
+                        } catch (playErr) {
+                            console.warn("Agora remoteAudioTrack.play() blocked or failed:", playErr);
+                        }
+
+                        // Fail-safe direct HTML5 audio element binding
+                        try {
+                            let audioEl = document.getElementById("agoraRemoteAudio");
+                            if (!audioEl) {
+                                audioEl = document.createElement("audio");
+                                audioEl.id = "agoraRemoteAudio";
+                                audioEl.autoplay = true;
+                                audioEl.playsInline = true;
+                                audioEl.style.display = "none";
+                                document.body.appendChild(audioEl);
+                            }
+                            if (remoteAudioTrack.getMediaStreamTrack) {
+                                audioEl.srcObject = new MediaStream([remoteAudioTrack.getMediaStreamTrack()]);
+                                audioEl.play().catch(e => {
+                                    console.warn("Direct HTML5 audio play blocked by browser autoplay policy:", e);
+                                });
+                            }
+                        } catch (elErr) {
+                            console.warn("Direct HTML5 audio setup note:", elErr);
+                        }
+                    }
                     updateState("speaking", "SAHAYAK is speaking...");
 
                     // Initialize Dual-Stream Recording once remote audio arrives
@@ -1186,14 +1231,24 @@ function startWebSpeechRecognition() {
         };
 
         recognition.onerror = (event) => {
+            if (event.error === "not-allowed" || event.error === "service-not-allowed" || event.error === "audio-capture") {
+                console.warn("Web Speech API permission not available; falling back cleanly to Agora ASR.");
+                isSpeechRecognitionAllowed = false;
+                try { recognition.stop(); } catch (e) {}
+                return;
+            }
             if (event.error !== "no-speech") {
                 console.debug("Web Speech Recognition note:", event.error);
             }
         };
 
         recognition.onend = () => {
-            if (isCallActive) {
-                try { recognition.start(); } catch (e) {}
+            if (isCallActive && isSpeechRecognitionAllowed) {
+                setTimeout(() => {
+                    if (isCallActive && isSpeechRecognitionAllowed) {
+                        try { recognition.start(); } catch (e) {}
+                    }
+                }, 1500);
             }
         };
 
@@ -1226,6 +1281,8 @@ function initDualStreamRecording(localTrack, remoteTrack) {
         if (!audioContext || audioContext.state === "closed") {
             const AudioCtx = window.AudioContext || window.webkitAudioContext;
             audioContext = new AudioCtx();
+        }
+        if (!mediaStreamDestination && audioContext) {
             mediaStreamDestination = audioContext.createMediaStreamDestination();
         }
 
@@ -1275,6 +1332,73 @@ function initDualStreamRecording(localTrack, remoteTrack) {
         }
     } catch (err) {
         console.warn("Dual-stream audio recorder initialization error:", err);
+    }
+}
+
+// ==========================================================================
+// SPEAKER TEST & BROWSER AUTOPLAY RECOVERY
+// ==========================================================================
+if (typeof AgoraRTC !== "undefined") {
+    AgoraRTC.onAutoplayFailed = () => {
+        console.warn("Agora detected browser audio autoplay restriction.");
+        showToast("🔊 Click anywhere on the screen to unmute SAHAYAK's voice audio.", "warning", 8000);
+        const unlock = () => {
+            if (remoteAudioTrack) {
+                try { remoteAudioTrack.play(); } catch (e) {}
+            }
+            const audioEl = document.getElementById("agoraRemoteAudio");
+            if (audioEl) {
+                audioEl.play().catch(() => {});
+            }
+            document.removeEventListener("click", unlock);
+        };
+        document.addEventListener("click", unlock, { once: true });
+    };
+}
+
+function testSpeakerSound() {
+    try {
+        const AudioCtx = window.AudioContext || window.webkitAudioContext;
+        const ctx = new AudioCtx();
+        ctx.resume();
+        const now = ctx.currentTime;
+
+        // Play pleasant harmonic 2-tone civic chime
+        const osc1 = ctx.createOscillator();
+        const gain1 = ctx.createGain();
+        osc1.type = "sine";
+        osc1.frequency.setValueAtTime(523.25, now);
+        gain1.gain.setValueAtTime(0.3, now);
+        gain1.gain.exponentialRampToValueAtTime(0.001, now + 0.35);
+        osc1.connect(gain1);
+        gain1.connect(ctx.destination);
+        osc1.start(now);
+        osc1.stop(now + 0.35);
+
+        const osc2 = ctx.createOscillator();
+        const gain2 = ctx.createGain();
+        osc2.type = "sine";
+        osc2.frequency.setValueAtTime(659.25, now + 0.15);
+        gain2.gain.setValueAtTime(0.35, now + 0.15);
+        gain2.gain.exponentialRampToValueAtTime(0.001, now + 0.55);
+        osc2.connect(gain2);
+        gain2.connect(ctx.destination);
+        osc2.start(now + 0.15);
+        osc2.stop(now + 0.55);
+
+        showToast("🔊 Playing sound test chime... If you hear this, your speaker is working properly.", "success", 4000);
+
+        if ("speechSynthesis" in window) {
+            try {
+                window.speechSynthesis.cancel();
+                const utter = new SpeechSynthesisUtterance("नमस्ते, सहायक ऑडियो सिस्टम तैयार है।");
+                utter.lang = "hi-IN";
+                utter.rate = 1.0;
+                window.speechSynthesis.speak(utter);
+            } catch (e) {}
+        }
+    } catch (err) {
+        showToast("Could not play test sound: " + err.message, "error", 4000);
     }
 }
 
@@ -1747,9 +1871,26 @@ async function simulatePrompt(text) {
             console.warn("Could not transmit prompt via RTM:", e);
         }
     } else if (!isCallActive) {
-        setTimeout(() => {
-            addTranscriptMessage("system", "To speak with SAHAYAK, click 'Start Voice Session' above.");
-        }, 400);
+        showToast("Connecting to SAHAYAK voice session...", "info", 3000);
+        try {
+            await startCall();
+            const waitForConnect = setInterval(async () => {
+                if (isCallActive && rtmClient && currentSession) {
+                    clearInterval(waitForConnect);
+                    try {
+                        await rtmClient.publish(currentSession.channel_name, JSON.stringify({
+                            object: "user.transcription",
+                            text: text,
+                            final: true
+                        }));
+                        console.log("Transmitted prompt to newly connected voice session:", text);
+                    } catch (e) {}
+                }
+            }, 300);
+            setTimeout(() => clearInterval(waitForConnect), 15000);
+        } catch (e) {
+            console.warn("Auto-start call on prompt click failed:", e);
+        }
     }
 }
 

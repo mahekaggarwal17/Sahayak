@@ -1,5 +1,47 @@
 [
   {
+    "id": "SHK-CIVIC-2805",
+    "problem": "Water Supply & Connections: Water pipeline is leaking badly near block B",
+    "category": "Water Supply & Connections",
+    "category_icon": "\ud83d\udca7",
+    "status": "In Progress",
+    "address": "Reported via SAHAYAK Voice Call",
+    "department": "Jal Board / Water Works Dept.",
+    "raised": "06 Sep 2026, 04:55 PM",
+    "updated": "06 Sep 2026, 04:55 PM",
+    "citizen_pin": "SAH-9999",
+    "citizen_id": null,
+    "timestamp_unix": 1788693949
+  },
+  {
+    "id": "SHK-CIVIC-2089",
+    "problem": "Street lights in Block C are broken for 2 days",
+    "category": "Street Lighting",
+    "category_icon": "\ud83d\udca1",
+    "status": "In Progress",
+    "address": "Sector 4, Block C, Rohini",
+    "department": "Municipal Electrical Dept.",
+    "raised": "06 Sep 2026, 04:55 PM",
+    "updated": "06 Sep 2026, 04:55 PM",
+    "citizen_pin": "SAH-3097",
+    "citizen_id": "CTZ-76971",
+    "timestamp_unix": 1788693948
+  },
+  {
+    "id": "SHK-CIVIC-5593",
+    "problem": "Civic Assistance: \u0906\u092a\u0915\u0940 \u0915\u094b\u0908 \u0938\u092e\u0938\u094d\u092f\u093e \u0939\u0948 \u092f\u093e \u091c\u093e\u0928\u0915\u093e\u0930\u0940 \u091a\u093e\u0939\u093f\u090f \u0915\u0943\u092a\u092f\u093e \u092c\u0924\u093e\u090f\u0902",
+    "category": "Civic Assistance",
+    "category_icon": "\ud83d\udccb",
+    "status": "In Progress",
+    "address": "Reported via SAHAYAK Voice Call",
+    "department": "Municipal Civic Services",
+    "raised": "06 Sep 2026, 04:54 PM",
+    "updated": "06 Sep 2026, 04:54 PM",
+    "citizen_pin": "SAH-6442",
+    "citizen_id": "",
+    "timestamp_unix": 1788693873
+  },
+  {
     "id": "SHK-CIVIC-9046",
     "problem": "Water Supply & Connections: Water pipeline is leaking badly near block B",
     "category": "Water Supply & Connections",
@@ -162,7 +204,7 @@
     "address": "Reported via SAHAYAK Voice Call",
     "department": "Nagar Nigam Sanitation Dept.",
     "raised": "06 Sep 2026, 12:53 PM",
-    "updated": "06 Sep 2026, 01:40 PM",
+    "updated": "06 Sep 2026, 04:55 PM",
     "citizen_pin": "SAH-4821",
     "citizen_id": null,
     "timestamp_unix": 1788679432

@@ -1,5 +1,103 @@
 [
   {
+    "id": "rec_1788693873_7ca00d51",
+    "channel_name": "android-convoai-1788693585-390339",
+    "created_at_iso": "2026-09-06T11:24:33.772770+00:00",
+    "created_at_formatted": "Sep 06, 2026, 11:24 AM",
+    "timestamp_unix": 1788693873,
+    "duration_seconds": 284,
+    "audio_filename": "rec_1788693873_7ca00d51.webm",
+    "audio_url": "/v1/recordings/rec_1788693873_7ca00d51/audio",
+    "file_size_bytes": 4413288,
+    "category": "Civic Assistance",
+    "ticket_number": "SHK-CIVIC-5593",
+    "summary": "Civic Assistance: आपकी कोई समस्या है या जानकारी चाहिए कृपया बताएं",
+    "turns_count": 11,
+    "transcripts": [
+      {
+        "speaker": "agent",
+        "text": "नमस्ते!मैं सहायक हूँ,आपका मल्टीलिंगुअल पब्लिक यूटिलिटी असिस्टेंट। कचरा,पानी,सड़क,बिजली जैसी किसी भी समस्या की शिकायत करें — या अपने पुराने टिकट,रिकॉर्डिंग्स और सिटिज़न पिन के बारे में पूछें।",
+        "timestamp": "16:49",
+        "turn_id": 1,
+        "is_final": true
+      },
+      {
+        "speaker": "agent",
+        "text": "आपकी कोई समस्या है या जानकारी चाहिए?",
+        "timestamp": "16:50",
+        "turn_id": 2,
+        "is_final": false
+      },
+      {
+        "speaker": "user",
+        "text": "आपकी कोई समस्या है या जानकारी चाहिए कृपया बताएं",
+        "timestamp": "16:50",
+        "turn_id": 1788693617309,
+        "is_final": true
+      },
+      {
+        "speaker": "user",
+        "text": "क्या आप मुझे अपना क्षेत्र या पता बता सकते हैं",
+        "timestamp": "16:50",
+        "turn_id": 1788693631113,
+        "is_final": true
+      },
+      {
+        "speaker": "user",
+        "text": "मेरा एड्रेस है",
+        "timestamp": "16:50",
+        "turn_id": 1788693635902,
+        "is_final": true
+      },
+      {
+        "speaker": "user",
+        "text": "बिजली नहीं आ रही है",
+        "timestamp": "16:51",
+        "turn_id": 1788693662698,
+        "is_final": true
+      },
+      {
+        "speaker": "user",
+        "text": "धन्यवाद",
+        "timestamp": "16:51",
+        "turn_id": 1788693668109,
+        "is_final": true
+      },
+      {
+        "speaker": "user",
+        "text": "को भेजी जाएगी 24 से 48 घंटे में निरीक्षण होगा",
+        "timestamp": "16:51",
+        "turn_id": 1788693682439,
+        "is_final": true
+      },
+      {
+        "speaker": "user",
+        "text": "शिकायत दर्ज करने के लिए कृपया मुझे निम्नलिखित जानकारी दें क्या आप मुझे सही पता बता सकते हैं",
+        "timestamp": "16:51",
+        "turn_id": 1788693705431,
+        "is_final": true
+      },
+      {
+        "speaker": "user",
+        "text": "हेलो हेलो हाउ कैन आई एसिस्ट यू टुडे",
+        "timestamp": "16:52",
+        "turn_id": 1788693744198,
+        "is_final": true
+      },
+      {
+        "speaker": "user",
+        "text": "मतलब 1:00 बजे रिपोर्टिंग टाइम",
+        "timestamp": "16:52",
+        "turn_id": 1788693753785,
+        "is_final": true
+      }
+    ],
+    "agent_id": "A44CW69NR97ME74FW36PT74RJ96XF82A",
+    "caller_rtc_uid": "872250",
+    "citizen_pin": "SAH-6442",
+    "citizen_id": null
+  },
+  {
     "id": "rec_1788677786_1314bb0c",
     "channel_name": "android-convoai-1788677676-468953",
     "created_at_iso": "2026-09-06T06:56:26.437339+00:00",
