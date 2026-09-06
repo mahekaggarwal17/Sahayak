@@ -49,8 +49,8 @@ def create_app(
         CORSMiddleware,
         allow_origins=list(resolved_settings.allowed_origins),
         allow_credentials=resolved_settings.allowed_origins != ("*",),
-        allow_methods=["GET", "POST", "DELETE"],
-        allow_headers=["Content-Type", "X-Request-ID"],
+        allow_methods=["GET", "POST", "DELETE", "OPTIONS"],
+        allow_headers=["Content-Type", "Authorization", "Accept", "Origin", "X-Request-ID", "X-Requested-With"],
     )
 
     @application.middleware("http")
@@ -61,6 +61,9 @@ def create_app(
         elapsed_ms = int((time.monotonic() - started) * 1000)
         response.headers["X-Request-ID"] = request_id
         response.headers["Server-Timing"] = f"app;dur={elapsed_ms}"
+        response.headers["X-Content-Type-Options"] = "nosniff"
+        response.headers["X-Frame-Options"] = "SAMEORIGIN"
+        response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
         logger.info(
             "request_id=%s method=%s path=%s status=%s duration_ms=%s",
             request_id,

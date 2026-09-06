@@ -7,11 +7,13 @@ import random
 import re
 import time
 import uuid
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta
 from pathlib import Path
+from threading import RLock
 from typing import Any
 
 logger = logging.getLogger("uvicorn.error")
+IST = timezone(timedelta(hours=5, minutes=30))
 
 
 class RecordingsStore:
@@ -24,32 +26,38 @@ class RecordingsStore:
 
         self.storage_dir = base_dir / "recordings"
         self.metadata_file = base_dir / "recordings.json"
+        self._lock = RLock()
         self._ensure_storage_ready()
 
     def _ensure_storage_ready(self) -> None:
-        self.storage_dir.mkdir(parents=True, exist_ok=True)
-        if not self.metadata_file.exists():
-            try:
-                self.metadata_file.write_text(json.dumps([], indent=2), encoding="utf-8")
-            except Exception as e:
-                logger.error("Failed to initialize recordings metadata file: %s", e)
+        with self._lock:
+            self.storage_dir.mkdir(parents=True, exist_ok=True)
+            if not self.metadata_file.exists():
+                try:
+                    temp_file = self.metadata_file.with_suffix(".tmp")
+                    temp_file.write_text(json.dumps([], indent=2), encoding="utf-8")
+                    temp_file.replace(self.metadata_file)
+                except Exception as e:
+                    logger.error("Failed to initialize recordings metadata file: %s", e)
 
     def _read_metadata(self) -> list[dict[str, Any]]:
-        try:
-            if not self.metadata_file.exists():
+        with self._lock:
+            try:
+                if not self.metadata_file.exists():
+                    return []
+                content = self.metadata_file.read_text(encoding="utf-8").strip()
+                if not content:
+                    return []
+                return json.loads(content)
+            except Exception as e:
+                logger.error("Error reading recordings metadata: %s", e)
                 return []
-            content = self.metadata_file.read_text(encoding="utf-8").strip()
-            if not content:
-                return []
-            return json.loads(content)
-        except Exception as e:
-            logger.error("Error reading recordings metadata: %s", e)
-            return []
 
     def _write_metadata(self, data: list[dict[str, Any]]) -> None:
-        temp_file = self.metadata_file.with_suffix(".tmp")
-        temp_file.write_text(json.dumps(data, indent=2, ensure_ascii=False), encoding="utf-8")
-        temp_file.replace(self.metadata_file)
+        with self._lock:
+            temp_file = self.metadata_file.with_suffix(".tmp")
+            temp_file.write_text(json.dumps(data, indent=2, ensure_ascii=False), encoding="utf-8")
+            temp_file.replace(self.metadata_file)
 
     @staticmethod
     def _detect_civic_category(transcripts: list[dict[str, Any]]) -> str:
@@ -124,9 +132,9 @@ class RecordingsStore:
             ticket = f"SHK-CIVIC-{random.randint(1000, 9999)}"
         summary = self._generate_summary(transcripts, category)
 
-        now_dt = datetime.now(timezone.utc)
-        created_at_iso = now_dt.isoformat()
-        created_at_formatted = now_dt.strftime("%b %d, %Y, %I:%M %p")
+        now_dt = datetime.now(IST)
+        created_at_iso = datetime.now(timezone.utc).isoformat()
+        created_at_formatted = now_dt.strftime("%d %b %Y, %I:%M %p")
 
         record: dict[str, Any] = {
             "id": rec_id,
@@ -134,7 +142,7 @@ class RecordingsStore:
             "created_at_iso": created_at_iso,
             "created_at_formatted": created_at_formatted,
             "timestamp_unix": now_ts,
-            "duration_seconds": duration_seconds,
+            "duration_seconds": max(0, duration_seconds),
             "audio_filename": audio_filename,
             "audio_url": f"/v1/recordings/{rec_id}/audio",
             "file_size_bytes": file_size,
@@ -149,25 +157,28 @@ class RecordingsStore:
             "citizen_id": str(metadata.get("citizen_id", "") or "") if metadata.get("citizen_id") else None,
         }
 
-        records = self._read_metadata()
-        records.insert(0, record)
-        self._write_metadata(records)
+        with self._lock:
+            records = self._read_metadata()
+            records.insert(0, record)
+            self._write_metadata(records)
 
         logger.info("Saved call recording id=%s channel=%s size=%d bytes ticket=%s", rec_id, channel_name, file_size, ticket)
         return record
 
     def update_recording_ticket(self, recording_id: str, ticket_number: str) -> dict[str, Any] | None:
-        records = self._read_metadata()
-        for r in records:
-            if r.get("id") == recording_id:
-                r["ticket_number"] = ticket_number
-                self._write_metadata(records)
-                logger.info("Updated recording id=%s with ticket_number=%s", recording_id, ticket_number)
-                return r
+        with self._lock:
+            records = self._read_metadata()
+            for r in records:
+                if r.get("id") == recording_id:
+                    r["ticket_number"] = ticket_number
+                    self._write_metadata(records)
+                    logger.info("Updated recording id=%s with ticket_number=%s", recording_id, ticket_number)
+                    return r
         return None
 
     def list_recordings(self, category: str | None = None, query: str | None = None) -> list[dict[str, Any]]:
-        records = self._read_metadata()
+        with self._lock:
+            records = self._read_metadata()
         if category:
             records = [r for r in records if r.get("category", "").lower() == category.lower()]
         if query:
@@ -183,34 +194,48 @@ class RecordingsStore:
         return records
 
     def get_recording(self, recording_id: str) -> dict[str, Any] | None:
-        records = self._read_metadata()
+        with self._lock:
+            records = self._read_metadata()
         return next((r for r in records if r.get("id") == recording_id), None)
 
     def get_audio_path(self, recording_id: str) -> Path | None:
         rec = self.get_recording(recording_id)
         if not rec:
             return None
-        filepath = self.storage_dir / rec.get("audio_filename", "")
-        if filepath.exists():
+        raw_filename = rec.get("audio_filename", "")
+        filename = Path(raw_filename).name  # Prevent directory traversal
+        if not filename or filename in (".", ".."):
+            return None
+        filepath = (self.storage_dir / filename).resolve()
+        try:
+            if not filepath.is_relative_to(self.storage_dir.resolve()):
+                return None
+        except (ValueError, RuntimeError):
+            return None
+        if filepath.is_file() and filepath.exists():
             return filepath
         return None
 
     def delete_recording(self, recording_id: str) -> bool:
-        records = self._read_metadata()
-        target = next((r for r in records if r.get("id") == recording_id), None)
-        if not target:
-            return False
+        with self._lock:
+            records = self._read_metadata()
+            target = next((r for r in records if r.get("id") == recording_id), None)
+            if not target:
+                return False
 
-        # Remove audio file
-        audio_file = self.storage_dir / target.get("audio_filename", "")
-        if audio_file.exists():
-            try:
-                audio_file.unlink()
-            except Exception as e:
-                logger.warning("Could not delete audio file %s: %s", audio_file, e)
+            # Remove audio file safely
+            raw_filename = target.get("audio_filename", "")
+            filename = Path(raw_filename).name
+            if filename and filename not in (".", ".."):
+                audio_file = (self.storage_dir / filename).resolve()
+                try:
+                    if audio_file.is_relative_to(self.storage_dir.resolve()) and audio_file.is_file() and audio_file.exists():
+                        audio_file.unlink()
+                except Exception as e:
+                    logger.warning("Could not delete audio file %s: %s", audio_file, e)
 
-        # Remove from metadata list
-        updated = [r for r in records if r.get("id") != recording_id]
-        self._write_metadata(updated)
-        logger.info("Deleted call recording id=%s", recording_id)
-        return True
+            # Remove from metadata list
+            updated = [r for r in records if r.get("id") != recording_id]
+            self._write_metadata(updated)
+            logger.info("Deleted call recording id=%s", recording_id)
+            return True

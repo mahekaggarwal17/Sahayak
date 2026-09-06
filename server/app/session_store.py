@@ -35,9 +35,11 @@ class SessionStore:
             self._cleanup_locked()
             return self._sessions.get(channel_name)
 
-    async def set_agent(self, channel_name: str, agent_id: str, state: str) -> SessionRecord:
+    async def set_agent(self, channel_name: str, agent_id: str, state: str) -> SessionRecord | None:
         async with self._lock:
-            record = self._sessions[channel_name]
+            record = self._sessions.get(channel_name)
+            if record is None:
+                return None
             record.agent_id = agent_id
             record.agent_state = state
             return record

@@ -442,6 +442,11 @@ function showToast(message, type = "info", duration = 5000) {
 }
 
 async function acquireMicrophoneTrack() {
+    if (typeof AgoraRTC === "undefined") {
+        console.warn("AgoraRTC is not loaded. Cannot acquire microphone track.");
+        return null;
+    }
+
     // 1. Release any lingering tracks to free audio hardware
     if (localAudioTrack) {
         try {
@@ -541,6 +546,7 @@ async function startCall() {
         btnStart.disabled = true;
         callTranscripts = [];
         recordedAudioChunks = [];
+        callStartTime = Date.now();
 
         // Unlock browser audio / AudioContext immediately on user gesture (non-blocking)
         if (window.AudioContext || window.webkitAudioContext) {
@@ -1077,7 +1083,13 @@ function updateLiveCaptions(speaker = "agent", text = "", isLive = true, isFinal
 
     if (captionsLangBadge) {
         captionsLangBadge.textContent = detectedLang;
-        captionsLangBadge.className = `captions-lang-chip ${detectedLang.toLowerCase()}`;
+        let langClass = "eng";
+        if (detectedLang === "हिन्दी" || detectedLang.toLowerCase() === "hindi") {
+            langClass = "hindi";
+        } else if (detectedLang.toUpperCase() === "HINGLISH") {
+            langClass = "hinglish";
+        }
+        captionsLangBadge.className = `captions-lang-chip ${langClass}`;
     }
 
     // 2. Speaker Attribution
@@ -2165,6 +2177,7 @@ function formatDuration(seconds) {
 }
 
 function escapeHtml(string) {
+    if (string === null || string === undefined) return "";
     const entityMap = {
         '&': '&amp;',
         '<': '&lt;',
@@ -2227,14 +2240,15 @@ const SEED_TICKETS = [
 let allTicketsData = [];
 
 async function loadTickets() {
-    const userPin = getCitizenPin();
     try {
-        const query = userPin ? `?pin=${encodeURIComponent(userPin)}` : "";
+        // If authenticated citizen, filter by citizen PIN; otherwise fetch all civic tickets
+        const query = (currentCitizen && currentCitizen.pin) ? `?pin=${encodeURIComponent(currentCitizen.pin)}` : "";
         const res = await fetch(`/v1/tickets${query}`, {
             headers: getAuthHeaders()
         });
         if (res.ok) {
             const data = await res.json();
+            const defaultPin = currentCitizen ? currentCitizen.pin : "SAH-4821";
             const tickets = (data.tickets || []).map(t => ({
                 id: t.id,
                 problem: t.problem,
@@ -2245,7 +2259,7 @@ async function loadTickets() {
                 department: t.department,
                 raised: t.raised,
                 updated: t.updated,
-                pin: t.citizen_pin || userPin
+                pin: t.citizen_pin || defaultPin
             }));
             allTicketsData = tickets;
             renderTickets(tickets);
@@ -2256,8 +2270,9 @@ async function loadTickets() {
     }
 
     // Fallback if offline
+    const userPin = getCitizenPin();
     const dynamic = JSON.parse(sessionStorage.getItem('sahayak_tickets') || '[]');
-    const all = [...dynamic, ...SEED_TICKETS].map(t => ({ ...t, pin: userPin }));
+    const all = [...dynamic, ...SEED_TICKETS].map(t => ({ ...t, pin: t.pin || userPin }));
     allTicketsData = all;
     renderTickets(all);
 }

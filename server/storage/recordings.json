@@ -3,7 +3,7 @@
     "id": "rec_1788694273_da900857",
     "channel_name": "android-convoai-1788694267-565203",
     "created_at_iso": "2026-09-06T11:31:13.229470+00:00",
-    "created_at_formatted": "Sep 06, 2026, 11:31 AM",
+    "created_at_formatted": "06 Sep 2026, 05:01 PM",
     "timestamp_unix": 1788694273,
     "duration_seconds": 3,
     "audio_filename": "rec_1788694273_da900857.webm",
@@ -23,7 +23,7 @@
       },
       {
         "speaker": "agent",
-        "text": "नमस्ते!मैं सहायक हूँ,",
+        "text": "\u0928\u092e\u0938\u094d\u0924\u0947!\u092e\u0948\u0902 \u0938\u0939\u093e\u092f\u0915 \u0939\u0942\u0901,",
         "timestamp": "05:01 pm",
         "turn_id": 1,
         "is_final": false
@@ -38,7 +38,7 @@
     "id": "rec_1788693873_7ca00d51",
     "channel_name": "android-convoai-1788693585-390339",
     "created_at_iso": "2026-09-06T11:24:33.772770+00:00",
-    "created_at_formatted": "Sep 06, 2026, 11:24 AM",
+    "created_at_formatted": "06 Sep 2026, 04:54 PM",
     "timestamp_unix": 1788693873,
     "duration_seconds": 284,
     "audio_filename": "rec_1788693873_7ca00d51.webm",
@@ -46,82 +46,82 @@
     "file_size_bytes": 4413288,
     "category": "Civic Assistance",
     "ticket_number": "SHK-CIVIC-5593",
-    "summary": "Civic Assistance: आपकी कोई समस्या है या जानकारी चाहिए कृपया बताएं",
+    "summary": "Civic Assistance: \u0906\u092a\u0915\u0940 \u0915\u094b\u0908 \u0938\u092e\u0938\u094d\u092f\u093e \u0939\u0948 \u092f\u093e \u091c\u093e\u0928\u0915\u093e\u0930\u0940 \u091a\u093e\u0939\u093f\u090f \u0915\u0943\u092a\u092f\u093e \u092c\u0924\u093e\u090f\u0902",
     "turns_count": 11,
     "transcripts": [
       {
         "speaker": "agent",
-        "text": "नमस्ते!मैं सहायक हूँ,आपका मल्टीलिंगुअल पब्लिक यूटिलिटी असिस्टेंट। कचरा,पानी,सड़क,बिजली जैसी किसी भी समस्या की शिकायत करें — या अपने पुराने टिकट,रिकॉर्डिंग्स और सिटिज़न पिन के बारे में पूछें।",
+        "text": "\u0928\u092e\u0938\u094d\u0924\u0947!\u092e\u0948\u0902 \u0938\u0939\u093e\u092f\u0915 \u0939\u0942\u0901,\u0906\u092a\u0915\u093e \u092e\u0932\u094d\u091f\u0940\u0932\u093f\u0902\u0917\u0941\u0905\u0932 \u092a\u092c\u094d\u0932\u093f\u0915 \u092f\u0942\u091f\u093f\u0932\u093f\u091f\u0940 \u0905\u0938\u093f\u0938\u094d\u091f\u0947\u0902\u091f\u0964 \u0915\u091a\u0930\u093e,\u092a\u093e\u0928\u0940,\u0938\u0921\u093c\u0915,\u092c\u093f\u091c\u0932\u0940 \u091c\u0948\u0938\u0940 \u0915\u093f\u0938\u0940 \u092d\u0940 \u0938\u092e\u0938\u094d\u092f\u093e \u0915\u0940 \u0936\u093f\u0915\u093e\u092f\u0924 \u0915\u0930\u0947\u0902 \u2014 \u092f\u093e \u0905\u092a\u0928\u0947 \u092a\u0941\u0930\u093e\u0928\u0947 \u091f\u093f\u0915\u091f,\u0930\u093f\u0915\u0949\u0930\u094d\u0921\u093f\u0902\u0917\u094d\u0938 \u0914\u0930 \u0938\u093f\u091f\u093f\u091c\u093c\u0928 \u092a\u093f\u0928 \u0915\u0947 \u092c\u093e\u0930\u0947 \u092e\u0947\u0902 \u092a\u0942\u091b\u0947\u0902\u0964",
         "timestamp": "16:49",
         "turn_id": 1,
         "is_final": true
       },
       {
         "speaker": "agent",
-        "text": "आपकी कोई समस्या है या जानकारी चाहिए?",
+        "text": "\u0906\u092a\u0915\u0940 \u0915\u094b\u0908 \u0938\u092e\u0938\u094d\u092f\u093e \u0939\u0948 \u092f\u093e \u091c\u093e\u0928\u0915\u093e\u0930\u0940 \u091a\u093e\u0939\u093f\u090f?",
         "timestamp": "16:50",
         "turn_id": 2,
         "is_final": false
       },
       {
         "speaker": "user",
-        "text": "आपकी कोई समस्या है या जानकारी चाहिए कृपया बताएं",
+        "text": "\u0906\u092a\u0915\u0940 \u0915\u094b\u0908 \u0938\u092e\u0938\u094d\u092f\u093e \u0939\u0948 \u092f\u093e \u091c\u093e\u0928\u0915\u093e\u0930\u0940 \u091a\u093e\u0939\u093f\u090f \u0915\u0943\u092a\u092f\u093e \u092c\u0924\u093e\u090f\u0902",
         "timestamp": "16:50",
         "turn_id": 1788693617309,
         "is_final": true
       },
       {
         "speaker": "user",
-        "text": "क्या आप मुझे अपना क्षेत्र या पता बता सकते हैं",
+        "text": "\u0915\u094d\u092f\u093e \u0906\u092a \u092e\u0941\u091d\u0947 \u0905\u092a\u0928\u093e \u0915\u094d\u0937\u0947\u0924\u094d\u0930 \u092f\u093e \u092a\u0924\u093e \u092c\u0924\u093e \u0938\u0915\u0924\u0947 \u0939\u0948\u0902",
         "timestamp": "16:50",
         "turn_id": 1788693631113,
         "is_final": true
       },
       {
         "speaker": "user",
-        "text": "मेरा एड्रेस है",
+        "text": "\u092e\u0947\u0930\u093e \u090f\u0921\u094d\u0930\u0947\u0938 \u0939\u0948",
         "timestamp": "16:50",
         "turn_id": 1788693635902,
         "is_final": true
       },
       {
         "speaker": "user",
-        "text": "बिजली नहीं आ रही है",
+        "text": "\u092c\u093f\u091c\u0932\u0940 \u0928\u0939\u0940\u0902 \u0906 \u0930\u0939\u0940 \u0939\u0948",
         "timestamp": "16:51",
         "turn_id": 1788693662698,
         "is_final": true
       },
       {
         "speaker": "user",
-        "text": "धन्यवाद",
+        "text": "\u0927\u0928\u094d\u092f\u0935\u093e\u0926",
         "timestamp": "16:51",
         "turn_id": 1788693668109,
         "is_final": true
       },
       {
         "speaker": "user",
-        "text": "को भेजी जाएगी 24 से 48 घंटे में निरीक्षण होगा",
+        "text": "\u0915\u094b \u092d\u0947\u091c\u0940 \u091c\u093e\u090f\u0917\u0940 24 \u0938\u0947 48 \u0918\u0902\u091f\u0947 \u092e\u0947\u0902 \u0928\u093f\u0930\u0940\u0915\u094d\u0937\u0923 \u0939\u094b\u0917\u093e",
         "timestamp": "16:51",
         "turn_id": 1788693682439,
         "is_final": true
       },
       {
         "speaker": "user",
-        "text": "शिकायत दर्ज करने के लिए कृपया मुझे निम्नलिखित जानकारी दें क्या आप मुझे सही पता बता सकते हैं",
+        "text": "\u0936\u093f\u0915\u093e\u092f\u0924 \u0926\u0930\u094d\u091c \u0915\u0930\u0928\u0947 \u0915\u0947 \u0932\u093f\u090f \u0915\u0943\u092a\u092f\u093e \u092e\u0941\u091d\u0947 \u0928\u093f\u092e\u094d\u0928\u0932\u093f\u0916\u093f\u0924 \u091c\u093e\u0928\u0915\u093e\u0930\u0940 \u0926\u0947\u0902 \u0915\u094d\u092f\u093e \u0906\u092a \u092e\u0941\u091d\u0947 \u0938\u0939\u0940 \u092a\u0924\u093e \u092c\u0924\u093e \u0938\u0915\u0924\u0947 \u0939\u0948\u0902",
         "timestamp": "16:51",
         "turn_id": 1788693705431,
         "is_final": true
       },
       {
         "speaker": "user",
-        "text": "हेलो हेलो हाउ कैन आई एसिस्ट यू टुडे",
+        "text": "\u0939\u0947\u0932\u094b \u0939\u0947\u0932\u094b \u0939\u093e\u0909 \u0915\u0948\u0928 \u0906\u0908 \u090f\u0938\u093f\u0938\u094d\u091f \u092f\u0942 \u091f\u0941\u0921\u0947",
         "timestamp": "16:52",
         "turn_id": 1788693744198,
         "is_final": true
       },
       {
         "speaker": "user",
-        "text": "मतलब 1:00 बजे रिपोर्टिंग टाइम",
+        "text": "\u092e\u0924\u0932\u092c 1:00 \u092c\u091c\u0947 \u0930\u093f\u092a\u094b\u0930\u094d\u091f\u093f\u0902\u0917 \u091f\u093e\u0907\u092e",
         "timestamp": "16:52",
         "turn_id": 1788693753785,
         "is_final": true
@@ -136,7 +136,7 @@
     "id": "rec_1788677786_1314bb0c",
     "channel_name": "android-convoai-1788677676-468953",
     "created_at_iso": "2026-09-06T06:56:26.437339+00:00",
-    "created_at_formatted": "Sep 06, 2026, 06:56 AM",
+    "created_at_formatted": "06 Sep 2026, 12:26 PM",
     "timestamp_unix": 1788677786,
     "duration_seconds": 106,
     "audio_filename": "rec_1788677786_1314bb0c.webm",
@@ -154,7 +154,7 @@
     "id": "rec_1788675088_e2f50217",
     "channel_name": "android-convoai-1788675081-365570",
     "created_at_iso": "2026-09-06T06:11:28.770297+00:00",
-    "created_at_formatted": "Sep 06, 2026, 06:11 AM",
+    "created_at_formatted": "06 Sep 2026, 11:41 AM",
     "timestamp_unix": 1788675088,
     "duration_seconds": 3,
     "audio_filename": "rec_1788675088_e2f50217.webm",
@@ -172,7 +172,7 @@
     "id": "rec_1788672601_2a6d1bbb",
     "channel_name": "android-convoai-1788672577-220957",
     "created_at_iso": "2026-09-06T05:30:01.338307+00:00",
-    "created_at_formatted": "Sep 06, 2026, 05:30 AM",
+    "created_at_formatted": "06 Sep 2026, 11:00 AM",
     "timestamp_unix": 1788672601,
     "duration_seconds": 21,
     "audio_filename": "rec_1788672601_2a6d1bbb.webm",

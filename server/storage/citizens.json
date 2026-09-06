@@ -23,5 +23,12 @@
     "picture": "https://lh3.googleusercontent.com/a/test-avatar",
     "auth_provider": "google",
     "created_at_unix": 1788681021
+  },
+  "' OR 1=1--": {
+    "citizen_id": "CTZ-47322",
+    "phone": "' OR 1=1--",
+    "name": "' OR 1=1--",
+    "pin": "SAH-3297",
+    "created_at_unix": 1788694641
   }
 }

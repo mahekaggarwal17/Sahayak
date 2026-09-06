@@ -305,7 +305,9 @@ def create_router(
                 raise HTTPException(status_code=502, detail="Agora response did not include agent_id.")
             created_at = int(result.get("create_ts") or time.time())
             agent_state = str(result.get("status") or "started")
-            await store.set_agent(body.channel_name, agent_id, agent_state)
+            updated = await store.set_agent(body.channel_name, agent_id, agent_state)
+            if updated is None:
+                raise HTTPException(status_code=404, detail="Conversation session expired before agent registration.")
             return JoinResponse(
                 agent_id=agent_id,
                 created_at_unix=created_at,
@@ -375,12 +377,15 @@ def create_router(
                 raw_b64 = body.audio_base64
                 if "," in raw_b64:
                     raw_b64 = raw_b64.split(",", 1)[1]
-                audio_bytes = base64.b64decode(raw_b64)
+                audio_bytes = base64.b64decode(raw_b64, validate=True)
             except Exception as e:
                 raise HTTPException(status_code=400, detail=f"Invalid base64 audio data: {e}")
 
-        # If audio_bytes is empty, provide a minimal silent placeholder or allow empty
+        # Ensure safe audio format extension
+        allowed_formats = {"webm", "wav", "mp3", "m4a", "aac", "ogg"}
         ext = (body.audio_format or "webm").lower().lstrip(".")
+        if ext not in allowed_formats:
+            ext = "webm"
 
         meta = dict(body.metadata or {})
         if citizen:

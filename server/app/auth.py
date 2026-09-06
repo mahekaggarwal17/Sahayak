@@ -41,12 +41,18 @@ def create_jwt_token(payload: dict[str, Any], secret_key: str, expires_in_second
     return f"{header_b64}.{payload_b64}.{sig_b64}"
 
 
+from threading import RLock
+
 def verify_jwt_token(token: str, secret_key: str) -> dict[str, Any]:
     try:
         parts = token.split(".")
         if len(parts) != 3:
             raise ValueError("Malformed token format.")
         header_b64, payload_b64, sig_b64 = parts
+
+        header = json.loads(_urlsafe_b64decode(header_b64).decode("utf-8"))
+        if header.get("alg") != "HS256":
+            raise ValueError(f"Unsupported algorithm '{header.get('alg')}'. Expected HS256.")
 
         signing_input = f"{header_b64}.{payload_b64}".encode("utf-8")
         expected_sig = hmac.new(secret_key.encode("utf-8"), signing_input, hashlib.sha256).digest()
@@ -70,31 +76,41 @@ def verify_jwt_token(token: str, secret_key: str) -> dict[str, Any]:
 class CitizenStore:
     def __init__(self, file_path: Path = CITIZENS_FILE) -> None:
         self.file_path = file_path
+        self._lock = RLock()
         self._ensure_storage()
 
     def _ensure_storage(self) -> None:
-        self.file_path.parent.mkdir(parents=True, exist_ok=True)
-        if not self.file_path.exists():
-            # Seed with demo citizen
-            demo_citizens = {
-                "9876543210": {
-                    "citizen_id": "CTZ-74892",
-                    "phone": "9876543210",
-                    "name": "Rajesh Kumar (Citizen Demo)",
-                    "pin": "SAH-4821",
-                    "created_at_unix": int(time.time()),
+        with self._lock:
+            self.file_path.parent.mkdir(parents=True, exist_ok=True)
+            if not self.file_path.exists():
+                # Seed with demo citizen
+                demo_citizens = {
+                    "9876543210": {
+                        "citizen_id": "CTZ-74892",
+                        "phone": "9876543210",
+                        "name": "Rajesh Kumar (Citizen Demo)",
+                        "pin": "SAH-4821",
+                        "created_at_unix": int(time.time()),
+                    }
                 }
-            }
-            self.file_path.write_text(json.dumps(demo_citizens, indent=2), encoding="utf-8")
+                temp_file = self.file_path.with_suffix(".tmp")
+                temp_file.write_text(json.dumps(demo_citizens, indent=2), encoding="utf-8")
+                temp_file.replace(self.file_path)
 
     def _read(self) -> dict[str, dict[str, Any]]:
-        try:
-            return json.loads(self.file_path.read_text(encoding="utf-8"))
-        except Exception:
-            return {}
+        with self._lock:
+            try:
+                if not self.file_path.exists():
+                    return {}
+                return json.loads(self.file_path.read_text(encoding="utf-8"))
+            except Exception:
+                return {}
 
     def _write(self, data: dict[str, dict[str, Any]]) -> None:
-        self.file_path.write_text(json.dumps(data, indent=2), encoding="utf-8")
+        with self._lock:
+            temp_file = self.file_path.with_suffix(".tmp")
+            temp_file.write_text(json.dumps(data, indent=2, ensure_ascii=False), encoding="utf-8")
+            temp_file.replace(self.file_path)
 
     def get_by_phone(self, phone: str) -> Optional[dict[str, Any]]:
         data = self._read()
