@@ -7,10 +7,12 @@ from typing import Any
 
 import base64
 import json
+import httpx
 from fastapi import APIRouter, Depends, HTTPException, Request, status
 from fastapi.responses import FileResponse
 
 from .agora_client import AgoraClient, AgoraTimeoutError, AgoraUpstreamError
+from .auth import citizen_store, create_jwt_token, get_auth_secret_key, get_current_citizen, get_optional_citizen
 from .config import Settings
 from .recordings_store import RecordingsStore
 from .schemas import (
@@ -18,6 +20,10 @@ from .schemas import (
     AgentActionRequest,
     BootstrapRequest,
     BootstrapResponse,
+    CitizenAuthResponse,
+    CitizenLoginRequest,
+    CitizenProfileResponse,
+    GoogleLoginRequest,
     HealthResponse,
     JoinRequest,
     JoinResponse,
@@ -27,9 +33,13 @@ from .schemas import (
     RefreshRequest,
     RefreshResponse,
     SaveRecordingRequest,
+    TicketCreateRequest,
+    TicketResponse,
+    TicketsListResponse,
 )
 from .security import build_rate_limiter
 from .session_store import SessionRecord, SessionStore
+from .ticket_store import ticket_store
 
 
 def create_router(
@@ -51,6 +61,185 @@ def create_router(
             agora_configured=bool(settings.agora_app_id and settings.agora_app_certificate),
             active_sessions=await store.count(),
         )
+
+    # --- Citizen Authentication Endpoints ---
+
+    @router.post(
+        "/v1/auth/citizen-login",
+        response_model=CitizenAuthResponse,
+        dependencies=throttled,
+    )
+    async def citizen_login(body: CitizenLoginRequest) -> CitizenAuthResponse:
+        citizen = citizen_store.authenticate_or_register(
+            phone=body.phone,
+            name=body.name,
+            pin=body.pin,
+        )
+        token = create_jwt_token(
+            payload={
+                "sub": citizen["citizen_id"],
+                "phone": citizen["phone"],
+                "name": citizen["name"],
+                "pin": citizen["pin"],
+            },
+            secret_key=get_auth_secret_key(),
+        )
+        return CitizenAuthResponse(
+            token=token,
+            citizen_id=citizen["citizen_id"],
+            phone=citizen["phone"],
+            name=citizen["name"],
+            pin=citizen["pin"],
+            email=citizen.get("email"),
+            picture=citizen.get("picture"),
+            message=f"Welcome back, {citizen['name']}!",
+        )
+
+    @router.get("/v1/auth/google-config")
+    async def google_config() -> dict[str, str]:
+        return {
+            "client_id": settings.google_client_id or "962346377917-nk61oe72ckp9vi8edfulktcr1prfp10d.apps.googleusercontent.com"
+        }
+
+    @router.post(
+        "/v1/auth/google",
+        response_model=CitizenAuthResponse,
+        dependencies=throttled,
+    )
+    async def google_login(body: GoogleLoginRequest) -> CitizenAuthResponse:
+        credential = body.credential.strip()
+        try:
+            async with httpx.AsyncClient(timeout=10.0) as http_client:
+                verify_url = f"https://oauth2.googleapis.com/tokeninfo?id_token={credential}"
+                res = await http_client.get(verify_url)
+                if res.status_code != 200:
+                    raise HTTPException(
+                        status_code=status.HTTP_400_BAD_REQUEST,
+                        detail="Invalid Google credential or expired token.",
+                    )
+                token_data = res.json()
+        except HTTPException:
+            raise
+        except Exception as exc:
+            raise HTTPException(
+                status_code=status.HTTP_502_BAD_GATEWAY,
+                detail=f"Google token verification failed: {exc}",
+            )
+
+        expected_client_id = settings.google_client_id
+        if expected_client_id and token_data.get("aud") != expected_client_id:
+            if expected_client_id not in str(token_data.get("aud", "")):
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail="Token audience does not match configured Google Client ID.",
+                )
+
+        email = token_data.get("email", "").strip().lower()
+        if not email:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Google token did not contain an email address.",
+            )
+
+        name = token_data.get("name") or token_data.get("given_name") or email.split("@")[0]
+        google_sub = str(token_data.get("sub", ""))
+        picture = token_data.get("picture")
+
+        citizen = citizen_store.authenticate_or_register_google(
+            email=email,
+            name=name,
+            google_sub=google_sub,
+            picture=picture,
+        )
+
+        token = create_jwt_token(
+            payload={
+                "sub": citizen["citizen_id"],
+                "phone": citizen.get("phone") or citizen.get("email"),
+                "email": citizen.get("email"),
+                "name": citizen["name"],
+                "pin": citizen["pin"],
+            },
+            secret_key=get_auth_secret_key(),
+        )
+
+        return CitizenAuthResponse(
+            token=token,
+            citizen_id=citizen["citizen_id"],
+            phone=citizen["phone"],
+            name=citizen["name"],
+            pin=citizen["pin"],
+            email=citizen.get("email"),
+            picture=citizen.get("picture"),
+            message=f"Welcome, {citizen['name']}!",
+        )
+
+    @router.get(
+        "/v1/auth/me",
+        response_model=CitizenProfileResponse,
+    )
+    async def citizen_me(
+        citizen: dict[str, Any] = Depends(get_current_citizen),
+    ) -> CitizenProfileResponse:
+        return CitizenProfileResponse(
+            citizen_id=citizen["citizen_id"],
+            phone=citizen.get("phone", ""),
+            name=citizen.get("name", ""),
+            pin=citizen.get("pin", ""),
+            email=citizen.get("email"),
+            picture=citizen.get("picture"),
+        )
+
+    # --- Civic Tickets Endpoints ---
+
+    @router.get(
+        "/v1/tickets",
+        response_model=TicketsListResponse,
+    )
+    async def list_tickets(
+        category: str | None = None,
+        pin: str | None = None,
+        citizen: Optional[dict[str, Any]] = Depends(get_optional_citizen),
+    ) -> TicketsListResponse:
+        # If authenticated, filter by citizen PIN/ID; otherwise filter by pin query param if provided
+        effective_pin = citizen["pin"] if citizen else (pin.strip() if pin else None)
+        citizen_id = citizen["citizen_id"] if citizen else None
+        tickets_data = ticket_store.list_tickets(citizen_pin=effective_pin, citizen_id=citizen_id, category=category)
+        tickets = [TicketResponse(**t) for t in tickets_data]
+        return TicketsListResponse(total_count=len(tickets), tickets=tickets)
+
+    @router.post(
+        "/v1/tickets",
+        response_model=TicketResponse,
+        status_code=status.HTTP_201_CREATED,
+        dependencies=throttled,
+    )
+    async def create_ticket(
+        body: TicketCreateRequest,
+        citizen: Optional[dict[str, Any]] = Depends(get_optional_citizen),
+    ) -> TicketResponse:
+        pin = body.citizen_pin or (citizen["pin"] if citizen else "SAH-4821")
+        c_id = citizen["citizen_id"] if citizen else None
+        ticket = ticket_store.create_ticket(
+            problem=body.problem,
+            category=body.category,
+            address=body.address,
+            citizen_pin=pin,
+            citizen_id=c_id,
+            department=body.department,
+            ticket_id=body.ticket_id,
+        )
+        return TicketResponse(**ticket)
+
+    @router.get(
+        "/v1/tickets/{ticket_id}",
+        response_model=TicketResponse,
+    )
+    async def get_ticket(ticket_id: str) -> TicketResponse:
+        ticket = ticket_store.get_ticket(ticket_id)
+        if not ticket:
+            raise HTTPException(status_code=404, detail="Ticket not found.")
+        return TicketResponse(**ticket)
 
     @router.post(
         "/v1/conversation/bootstrap",
@@ -177,6 +366,7 @@ def create_router(
     )
     async def upload_recording(
         body: SaveRecordingRequest,
+        citizen: Optional[dict[str, Any]] = Depends(get_optional_citizen),
     ) -> RecordingDetailResponse:
         audio_bytes = b""
         if body.audio_base64:
@@ -192,15 +382,68 @@ def create_router(
         # If audio_bytes is empty, provide a minimal silent placeholder or allow empty
         ext = (body.audio_format or "webm").lower().lstrip(".")
 
+        meta = dict(body.metadata or {})
+        if citizen:
+            if not meta.get("citizen_pin"):
+                meta["citizen_pin"] = citizen["pin"]
+            if not meta.get("citizen_id"):
+                meta["citizen_id"] = citizen["citizen_id"]
+        elif not meta.get("citizen_pin"):
+            meta["citizen_pin"] = "SAH-4821"
+
         record = rec_store.save_recording(
             audio_bytes=audio_bytes,
             channel_name=body.channel_name,
             duration_seconds=body.duration_seconds,
             transcripts=body.transcripts,
-            metadata=body.metadata,
+            metadata=meta,
             file_extension=ext,
         )
+
+        # Automatically create or sync ticket in ticket_store
+        t_id = record.get("ticket_number")
+        if t_id:
+            ticket_store.create_ticket(
+                problem=record.get("summary") or "Civic consultation recorded via SAHAYAK Voice AI",
+                category=record.get("category") or "Municipal Civic Services",
+                address="Reported via SAHAYAK Voice Call",
+                citizen_pin=meta.get("citizen_pin", "SAH-4821"),
+                citizen_id=meta.get("citizen_id"),
+                ticket_id=t_id,
+            )
+
         return RecordingDetailResponse(**record)
+
+    @router.post(
+        "/v1/recordings/{recording_id}/generate-ticket",
+        response_model=TicketResponse,
+        status_code=status.HTTP_200_OK,
+    )
+    async def generate_ticket_for_recording(
+        recording_id: str,
+        citizen: Optional[dict[str, Any]] = Depends(get_optional_citizen),
+    ) -> TicketResponse:
+        record = rec_store.get_recording(recording_id)
+        if not record:
+            raise HTTPException(status_code=404, detail="Recording not found.")
+
+        c_pin = record.get("citizen_pin") or (citizen["pin"] if citizen else "SAH-4821")
+        c_id = record.get("citizen_id") or (citizen["citizen_id"] if citizen else None)
+
+        ticket_id = record.get("ticket_number")
+        if not ticket_id:
+            ticket_id = f"SHK-CIVIC-{random.randint(1000, 9999)}"
+            rec_store.update_recording_ticket(recording_id, ticket_id)
+
+        ticket = ticket_store.create_ticket(
+            problem=record.get("summary") or "Civic consultation recorded via SAHAYAK Voice AI",
+            category=record.get("category") or "Municipal Civic Services",
+            address="Reported via SAHAYAK Voice Call",
+            citizen_pin=c_pin,
+            citizen_id=c_id,
+            ticket_id=ticket_id,
+        )
+        return TicketResponse(**ticket)
 
     @router.get(
         "/v1/recordings",
@@ -257,6 +500,25 @@ def create_router(
             raise HTTPException(status_code=404, detail="Recording not found.")
         return ActionResponse(success=True, message="Recording deleted successfully.")
 
+    # Ensure all previously saved recordings have generated tickets in ticket_store
+    try:
+        for r in rec_store.list_recordings():
+            t_num = r.get("ticket_number")
+            if not t_num:
+                t_num = f"SHK-CIVIC-{random.randint(1000, 9999)}"
+                rec_store.update_recording_ticket(r["id"], t_num)
+            if not ticket_store.get_ticket(t_num):
+                ticket_store.create_ticket(
+                    problem=r.get("summary") or "Civic consultation recorded via SAHAYAK Voice AI",
+                    category=r.get("category") or "Civic Assistance",
+                    address="Reported via SAHAYAK Voice Call",
+                    citizen_pin=r.get("citizen_pin") or "SAH-4821",
+                    citizen_id=r.get("citizen_id"),
+                    ticket_id=t_num,
+                )
+    except Exception:
+        pass
+
     return router
 
 
@@ -281,3 +543,6 @@ async def call_agora(awaitable: Any) -> Any:
         raise HTTPException(status_code=504, detail=str(exc)) from exc
     except AgoraUpstreamError as exc:
         raise HTTPException(status_code=502, detail=str(exc)) from exc
+    except Exception as exc:
+        raise HTTPException(status_code=502, detail=f"Agora communication error: {exc}") from exc
+

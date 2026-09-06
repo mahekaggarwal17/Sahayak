@@ -69,6 +69,10 @@ def create_app(
             response.status_code,
             elapsed_ms,
         )
+        if request.url.path.startswith("/static/") or request.url.path in ("/", "/app"):
+            response.headers["Cache-Control"] = "no-cache, no-store, must-revalidate"
+            response.headers["Pragma"] = "no-cache"
+            response.headers["Expires"] = "0"
         return response
 
     application.include_router(create_router(resolved_settings, store, agora, recordings))

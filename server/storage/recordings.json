@@ -1,1 +1,56 @@
-[]
+[
+  {
+    "id": "rec_1788677786_1314bb0c",
+    "channel_name": "android-convoai-1788677676-468953",
+    "created_at_iso": "2026-09-06T06:56:26.437339+00:00",
+    "created_at_formatted": "Sep 06, 2026, 06:56 AM",
+    "timestamp_unix": 1788677786,
+    "duration_seconds": 106,
+    "audio_filename": "rec_1788677786_1314bb0c.webm",
+    "audio_url": "/v1/recordings/rec_1788677786_1314bb0c/audio",
+    "file_size_bytes": 1737470,
+    "category": "Civic Assistance",
+    "ticket_number": "SHK-CIVIC-2488",
+    "summary": "Civic Assistance consultation with SAHAYAK Voice AI",
+    "turns_count": 0,
+    "transcripts": [],
+    "agent_id": "A44CY69NK26PA49LH67FP54WV87AW38E",
+    "caller_rtc_uid": "446707"
+  },
+  {
+    "id": "rec_1788675088_e2f50217",
+    "channel_name": "android-convoai-1788675081-365570",
+    "created_at_iso": "2026-09-06T06:11:28.770297+00:00",
+    "created_at_formatted": "Sep 06, 2026, 06:11 AM",
+    "timestamp_unix": 1788675088,
+    "duration_seconds": 3,
+    "audio_filename": "rec_1788675088_e2f50217.webm",
+    "audio_url": "/v1/recordings/rec_1788675088_e2f50217/audio",
+    "file_size_bytes": 78805,
+    "category": "Civic Assistance",
+    "ticket_number": "SHK-CIVIC-1804",
+    "summary": "Civic Assistance consultation with SAHAYAK Voice AI",
+    "turns_count": 0,
+    "transcripts": [],
+    "agent_id": "A44CE27XM36CN47ML86VA44XD76LN62M",
+    "caller_rtc_uid": "444964"
+  },
+  {
+    "id": "rec_1788672601_2a6d1bbb",
+    "channel_name": "android-convoai-1788672577-220957",
+    "created_at_iso": "2026-09-06T05:30:01.338307+00:00",
+    "created_at_formatted": "Sep 06, 2026, 05:30 AM",
+    "timestamp_unix": 1788672601,
+    "duration_seconds": 21,
+    "audio_filename": "rec_1788672601_2a6d1bbb.webm",
+    "audio_url": "/v1/recordings/rec_1788672601_2a6d1bbb/audio",
+    "file_size_bytes": 363097,
+    "category": "Civic Assistance",
+    "ticket_number": "SHK-CIVIC-3693",
+    "summary": "Civic Assistance consultation with SAHAYAK Voice AI",
+    "turns_count": 0,
+    "transcripts": [],
+    "agent_id": "A44CT78EN65LA66DC76NK84XV36ME36K",
+    "caller_rtc_uid": "295016"
+  }
+]

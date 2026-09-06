@@ -1,0 +1,7 @@
+## Sahayak Android Local Properties Example
+## Rename this file to local.properties and configure your backend URL.
+## For live hosted backend:
+QUICKSTART_SERVER_URL=https://sahayak-backend-0r3f.onrender.com
+
+## For local development with Android emulator:
+# QUICKSTART_SERVER_URL=http://10.0.2.2:8000

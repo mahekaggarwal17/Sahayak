@@ -12,7 +12,7 @@
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 html,body{width:100%;height:100%}
 html{font-size:16px}
-body{background:#0A0A0A;color:#FFF;font-family:'Inter',system-ui,sans-serif;font-weight:300;-webkit-font-smoothing:antialiased;overflow:hidden}
+body{background:#0A0A0A;color:#FFF;font-family:'Inter',system-ui,sans-serif;font-weight:300;-webkit-font-smoothing:antialiased;overflow-x:hidden;overflow-y:auto}
 :root{
   --accent:#6366F1;--accent-press:#4338CA;
   --muted:#71717A;--hair:rgba(255,255,255,.10);
@@ -35,10 +35,15 @@ nav{position:fixed;top:0;left:0;right:0;z-index:100;height:52px;border-bottom:1p
 .nav-links a:hover{color:#FFF}
 .nav-cta{padding:7px 16px;border:1px solid var(--hair);font-size:12px;letter-spacing:.04em;color:#FFF;background:transparent;transition:border-color .2s,background .2s}
 .nav-cta:hover{border-color:var(--accent);background:rgba(99,102,241,.08)}
-#hero{position:relative;width:100%;height:100vh;overflow:hidden;display:flex;flex-direction:column;justify-content:flex-end}
+#hero{position:relative;width:100%;min-height:100vh;height:auto;overflow:hidden;display:flex;flex-direction:column;justify-content:flex-end;padding-top:72px}
 #hero-canvas{position:absolute;inset:0;width:100%;height:100%}
 #hero-veil{position:absolute;inset:0;pointer-events:none;background:linear-gradient(to bottom,transparent 20%,rgba(10,10,10,.95) 100%)}
 .hero-content{position:relative;z-index:2;padding:0 var(--gutter) clamp(36px,6vw,80px);max-width:var(--max);margin:0 auto;width:100%}
+@media(max-width:640px){
+  .hero-headline{font-size:clamp(3rem,12vw,6rem)!important}
+  .hero-meta{flex-wrap:wrap;gap:8px;font-size:10px}
+  .hero-meta-sep{display:none}
+}
 .hero-meta{display:flex;align-items:center;gap:16px;margin-bottom:22px;color:rgba(255,255,255,.74);border-top:1px solid var(--hair);padding-top:16px}
 .hero-meta-sep{width:1px;height:10px;background:var(--hair)}
 .hero-headline{font-size:clamp(4.5rem,16vw,14rem);line-height:.82;letter-spacing:-.05em;font-weight:300;margin-bottom:28px}

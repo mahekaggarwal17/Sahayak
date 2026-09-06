@@ -8,9 +8,15 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="/static/styles.css">
+    <link rel="stylesheet" href="/static/styles.css?v=2.6">
+    <style>
+        /* Critical modal safety - prevents any unstyled flash before full CSS loads */
+        .modal-backdrop.hidden, .modal-backdrop[hidden], [hidden] { display: none !important; }
+        .modal-backdrop { position: fixed !important; inset: 0 !important; z-index: 99999 !important; }
+    </style>
     <script src="https://download.agora.io/sdk/release/AgoraRTC_N-4.23.0.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/agora-rtm-sdk@2.2.0/index.min.js"></script>
+    <script src="https://accounts.google.com/gsi/client" async defer></script>
 </head>
 <body>
 
@@ -52,6 +58,21 @@
         </nav>
 
         <div class="topbar-actions">
+            <!-- Citizen Auth Profile / Login Button -->
+            <div id="citizenAuthContainer" class="citizen-auth-wrap">
+                <button class="btn-citizen-auth" id="btnCitizenLogin" onclick="openAuthModal()">
+                    <span class="auth-icon">👤</span> <span id="authBtnLabel">Citizen Login</span>
+                </button>
+                <div id="citizenProfileBadge" class="citizen-badge hidden">
+                    <span class="citizen-avatar">👤</span>
+                    <div class="citizen-info">
+                        <span id="citizenNameLabel" class="citizen-name">Citizen</span>
+                        <span id="citizenPinBadge" class="citizen-pin-tag">PIN: SAH-XXXX</span>
+                    </div>
+                    <button class="btn-citizen-logout" onclick="logoutCitizen()" title="Sign Out">✕</button>
+                </div>
+            </div>
+
             <div class="status-pill" id="connectionStatus">
                 <span class="status-dot" id="statusDot"></span>
                 <span id="connectionStatusText">Ready</span>
@@ -244,8 +265,20 @@
                         <p class="tickets-subtitle">Your filed complaints, real-time status, and secure citizen PIN</p>
                     </div>
                     <div class="tickets-header-right">
+                        <button class="btn-file-ticket" onclick="openComplaintModal()">
+                            <span>+ File New Complaint</span>
+                        </button>
                         <span class="pin-security-note">🔒 PINs are masked — click the eye icon to reveal</span>
                     </div>
+                </div>
+
+                <div class="ticket-filter-row" id="ticketFilterRow">
+                    <button class="ticket-filter-pill active" onclick="filterTickets('all', this)">📋 All</button>
+                    <button class="ticket-filter-pill" onclick="filterTickets('waste', this)">🗑 Waste</button>
+                    <button class="ticket-filter-pill" onclick="filterTickets('water', this)">💧 Water</button>
+                    <button class="ticket-filter-pill" onclick="filterTickets('light', this)">💡 Lighting</button>
+                    <button class="ticket-filter-pill" onclick="filterTickets('road', this)">🚧 Roads/Potholes</button>
+                    <button class="ticket-filter-pill" onclick="filterTickets('emergency', this)">🚨 Hazard/Emergency</button>
                 </div>
 
                 <div id="ticketsList" class="tickets-list">
@@ -436,11 +469,6 @@
         </section>
     </div>
 
-    <!-- Other main tabs (storage/kb/metrics as full-page views via nav) -->
-    <div id="mainStorage" class="main-tab"></div>
-    <div id="mainKb" class="main-tab"></div>
-    <div id="mainMetrics" class="main-tab"></div>
-
 </main>
 
 <!-- Footer -->
@@ -459,6 +487,119 @@
     </div>
 </footer>
 
-<script src="/static/app.js"></script>
+<!-- Citizen Authentication Modal -->
+<div id="citizenAuthModal" class="modal-backdrop hidden" hidden style="display: none;" onclick="handleModalBackdropClick(event)">
+    <div class="modal-card" role="dialog" aria-modal="true" aria-labelledby="modalCitizenTitle">
+        <div class="modal-header">
+            <div class="modal-title-wrap">
+                <span class="modal-icon">🏛</span>
+                <div>
+                    <h3 class="modal-title" id="modalCitizenTitle">Citizen Verification &amp; Login</h3>
+                    <p class="modal-sub">Secure access to your civic complaints, recordings &amp; citizen PIN</p>
+                </div>
+            </div>
+            <button class="modal-close-btn" onclick="closeAuthModal()" title="Close dialog (Esc)">✕</button>
+        </div>
+
+        <!-- Google One-Click Citizen Login -->
+        <div class="google-auth-box">
+            <div class="google-auth-label">Fast &amp; Secure Verification</div>
+            <div id="googleSignInButton" class="google-signin-btn-wrap"></div>
+            <div id="googleOriginNotice" class="google-origin-notice">
+                <span>Origin: <code id="currentOriginLabel" class="origin-code">...</code></span>
+                <span id="googleOriginTip" class="origin-tip"></span>
+            </div>
+        </div>
+
+        <div class="auth-divider">
+            <span class="auth-divider-line"></span>
+            <span class="auth-divider-text">OR CONTINUE WITH MOBILE &amp; PIN</span>
+            <span class="auth-divider-line"></span>
+        </div>
+
+        <form id="citizenLoginForm" onsubmit="handleCitizenLoginSubmit(event)" class="modal-form">
+            <div class="form-group">
+                <label for="inputCitizenPhone" class="form-label">📱 Mobile Number (10-digit)</label>
+                <div class="phone-input-wrap">
+                    <span class="phone-prefix">+91</span>
+                    <input type="tel" id="inputCitizenPhone" class="form-input" placeholder="9876543210" required pattern="[0-9]{10}" maxlength="10" autocomplete="tel">
+                </div>
+            </div>
+            <div class="form-group">
+                <label for="inputCitizenName" class="form-label">👤 Citizen Full Name</label>
+                <input type="text" id="inputCitizenName" class="form-input" placeholder="e.g. Rajesh Kumar" required maxlength="100" autocomplete="name">
+            </div>
+            <div class="form-group">
+                <label for="inputCitizenPin" class="form-label">🔐 Citizen PIN (Optional if registered)</label>
+                <input type="text" id="inputCitizenPin" class="form-input font-mono" placeholder="e.g. SAH-4821 (Leave blank to generate)">
+            </div>
+            
+            <div class="quick-demo-section">
+                <div class="quick-demo-label">⚡ 1-Click Demo Personas for Judges / Testing</div>
+                <div class="demo-chips-row">
+                    <button type="button" class="demo-chip-btn" onclick="fillDemoPersona('9876543210', 'Rajesh Kumar', 'SAH-4821')">
+                        <span>👤</span> Rajesh Kumar (SAH-4821)
+                    </button>
+                    <button type="button" class="demo-chip-btn" onclick="fillDemoPersona('9811223344', 'Priya Sharma', 'SAH-9102')">
+                        <span>👤</span> Priya Sharma (SAH-9102)
+                    </button>
+                </div>
+            </div>
+
+            <div class="modal-actions">
+                <button type="submit" class="btn-primary-auth" id="btnSubmitAuth">
+                    <span>🔐 Login &amp; Connect Identity</span>
+                </button>
+            </div>
+            <div id="authErrorMsg" class="auth-error-msg hidden" style="display: none;"></div>
+        </form>
+    </div>
+</div>
+
+<!-- File New Complaint Modal -->
+<div id="fileComplaintModal" class="modal-backdrop hidden" hidden style="display: none;" onclick="handleComplaintModalBackdropClick(event)">
+    <div class="modal-card" role="dialog" aria-modal="true" aria-labelledby="modalComplaintTitle">
+        <div class="modal-header">
+            <div class="modal-title-wrap">
+                <span class="modal-icon">🎫</span>
+                <div>
+                    <h3 class="modal-title" id="modalComplaintTitle">File Civic Complaint</h3>
+                    <p class="modal-sub">Register an issue with Municipal Authorities and generate a trackable ticket</p>
+                </div>
+            </div>
+            <button class="modal-close-btn" onclick="closeComplaintModal()" title="Close dialog (Esc)">✕</button>
+        </div>
+        <form id="fileComplaintForm" onsubmit="handleManualComplaintSubmit(event)" class="modal-form">
+            <div class="form-group">
+                <label for="complaintCategorySelect" class="form-label">📂 Civic Category</label>
+                <select id="complaintCategorySelect" class="form-input" required>
+                    <option value="Waste & Sanitation">🗑 Waste &amp; Sanitation (Garbage, Safai)</option>
+                    <option value="Water Supply">💧 Water Supply &amp; Leakages (Paani)</option>
+                    <option value="Street Lighting">💡 Street Lighting (Bijli, Andhera)</option>
+                    <option value="Roads & Potholes">🚧 Roads &amp; Potholes (Sadak, Gaddha)</option>
+                    <option value="Urgent Public Safety">🚨 Emergency &amp; Hazards (Live Wire, Gas Leak)</option>
+                    <option value="Municipal Civic Services">📋 General Municipal Services</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label for="inputComplaintProblem" class="form-label">📝 Problem Description</label>
+                <textarea id="inputComplaintProblem" class="form-input" rows="3" placeholder="Describe the issue (e.g. Garbage piling up on street corner for 3 days)..." required minlength="5" maxlength="1000"></textarea>
+            </div>
+            <div class="form-group">
+                <label for="inputComplaintAddress" class="form-label">📍 Location / Address</label>
+                <input type="text" id="inputComplaintAddress" class="form-input" placeholder="e.g. Sector 12, Block B, Rohini, New Delhi" required maxlength="250">
+            </div>
+
+            <div class="modal-actions">
+                <button type="submit" class="btn-primary-auth" id="btnSubmitComplaint">
+                    <span>🎫 Submit &amp; Generate Ticket</span>
+                </button>
+            </div>
+            <div id="complaintErrorMsg" class="auth-error-msg hidden" style="display: none;"></div>
+        </form>
+    </div>
+</div>
+
+<script src="/static/app.js?v=2.6"></script>
 </body>
 </html>

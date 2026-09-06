@@ -18,13 +18,14 @@ def _csv(value: str) -> tuple[str, ...]:
 class Settings:
     agora_app_id: str
     agora_app_certificate: str
-    agora_customer_id: str = "2478952098254c99964e2b4c5df7f58d"
-    agora_customer_secret: str = "5b3e6db886bc4f29bff1dbad3af3483b"
+    agora_customer_id: str = ""
+    agora_customer_secret: str = ""
+    auth_secret_key: str = "sahayak-default-secret-key-change-in-production"
     asr_model: str = "nova-3"
     llm_model: str = "gpt-4o-mini"
     tts_model: str = "speech_2_6_turbo"
-    tts_voice_id: str = "English_captivating_female1"
-    agora_area: str = "NORTH_AMERICA"
+    tts_voice_id: str = "hindi_female_2_v1"
+    agora_area: str = "ASIA_PACIFIC"
     agent_uid: int = 123456
     host: str = "127.0.0.1"
     port: int = 8000
@@ -33,20 +34,21 @@ class Settings:
     session_ttl_seconds: int = 7200
     requests_per_minute: int = 60
     build_version: str = "1.0.0"
+    google_client_id: str = ""
+    google_client_secret: str = ""
 
     @classmethod
     def from_env(cls) -> "Settings":
         load_dotenv(SERVER_DIR / ".env", override=False)
         load_dotenv(SERVER_DIR / ".env.local", override=True)
-        app_id = os.getenv("AGORA_APP_ID", "b6bfc5ea3dac445cb951beb9d373ddc5").strip() or "b6bfc5ea3dac445cb951beb9d373ddc5"
+        app_id = os.getenv("AGORA_APP_ID", "").strip()
         app_cert = os.getenv("AGORA_APP_CERTIFICATE", "").strip()
-        if not app_cert or app_cert == "5b3e6db886bc4f29bff1dbad3af3483b":
-            app_cert = "6441f7686f6e449eba6a57e1eddb681c"
         return cls(
             agora_app_id=app_id,
             agora_app_certificate=app_cert,
-            agora_customer_id=os.getenv("AGORA_CUSTOMER_ID", "2478952098254c99964e2b4c5df7f58d").strip(),
-            agora_customer_secret=os.getenv("AGORA_CUSTOMER_SECRET", "5b3e6db886bc4f29bff1dbad3af3483b").strip(),
+            agora_customer_id=os.getenv("AGORA_CUSTOMER_ID", "").strip(),
+            agora_customer_secret=os.getenv("AGORA_CUSTOMER_SECRET", "").strip(),
+            auth_secret_key=os.getenv("AUTH_SECRET_KEY", "sahayak-default-secret-key-change-in-production").strip(),
             asr_model=os.getenv("ASR_MODEL", "nova-3"),
             llm_model=os.getenv("LLM_MODEL", "gpt-4o-mini"),
             tts_model=os.getenv("TTS_MODEL", "speech_2_6_turbo"),
@@ -60,6 +62,8 @@ class Settings:
             session_ttl_seconds=int(os.getenv("SESSION_TTL_SECONDS", "7200")),
             requests_per_minute=int(os.getenv("REQUESTS_PER_MINUTE", "60")),
             build_version=os.getenv("BUILD_VERSION", "1.0.0"),
+            google_client_id=os.getenv("GOOGLE_CLIENT_ID", "").strip(),
+            google_client_secret=os.getenv("GOOGLE_CLIENT_SECRET", "").strip(),
         )
 
     def validate(self) -> None:

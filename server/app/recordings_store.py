@@ -3,6 +3,7 @@ from __future__ import annotations
 import json
 import logging
 import os
+import random
 import re
 import time
 import uuid
@@ -71,9 +72,14 @@ class RecordingsStore:
     @staticmethod
     def _detect_ticket(transcripts: list[dict[str, Any]]) -> str | None:
         combined_text = " ".join([turn.get("text", "") for turn in transcripts])
-        match = re.search(r"\b(SHK-[A-Z0-9-]+|\d{4,8})\b", combined_text, re.IGNORECASE)
-        if match:
-            return match.group(1).upper()
+        # Look for explicit SHK-CIVIC-XXXX or SHK-XXXX
+        match_shk = re.search(r"\b(SHK-[A-Z0-9-]+)\b", combined_text, re.IGNORECASE)
+        if match_shk:
+            return match_shk.group(1).upper()
+        # Look for phrases like 'ticket number 1234' or 'complaint 1234' or 'शिकायत 1234'
+        match_num = re.search(r"(?:ticket|complaint|शिकायत)\s*(?:number|no|id|संख्या)?\s*[:#-]?\s*(\d{4,6})", combined_text, re.IGNORECASE)
+        if match_num:
+            return f"SHK-CIVIC-{match_num.group(1)}"
         return None
 
     @staticmethod
@@ -114,6 +120,8 @@ class RecordingsStore:
 
         category = self._detect_civic_category(transcripts)
         ticket = self._detect_ticket(transcripts)
+        if not ticket:
+            ticket = f"SHK-CIVIC-{random.randint(1000, 9999)}"
         summary = self._generate_summary(transcripts, category)
 
         now_dt = datetime.now(timezone.utc)
@@ -137,14 +145,26 @@ class RecordingsStore:
             "transcripts": transcripts,
             "agent_id": str(metadata.get("agent_id", "") or ""),
             "caller_rtc_uid": str(metadata.get("requester_rtc_uid", "") or ""),
+            "citizen_pin": str(metadata.get("citizen_pin", "") or ""),
+            "citizen_id": str(metadata.get("citizen_id", "") or "") if metadata.get("citizen_id") else None,
         }
 
         records = self._read_metadata()
         records.insert(0, record)
         self._write_metadata(records)
 
-        logger.info("Saved call recording id=%s channel=%s size=%d bytes", rec_id, channel_name, file_size)
+        logger.info("Saved call recording id=%s channel=%s size=%d bytes ticket=%s", rec_id, channel_name, file_size, ticket)
         return record
+
+    def update_recording_ticket(self, recording_id: str, ticket_number: str) -> dict[str, Any] | None:
+        records = self._read_metadata()
+        for r in records:
+            if r.get("id") == recording_id:
+                r["ticket_number"] = ticket_number
+                self._write_metadata(records)
+                logger.info("Updated recording id=%s with ticket_number=%s", recording_id, ticket_number)
+                return r
+        return None
 
     def list_recordings(self, category: str | None = None, query: str | None = None) -> list[dict[str, Any]]:
         records = self._read_metadata()

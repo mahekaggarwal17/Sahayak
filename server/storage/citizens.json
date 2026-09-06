@@ -1,0 +1,27 @@
+{
+  "9876543210": {
+    "citizen_id": "CTZ-74892",
+    "phone": "9876543210",
+    "name": "Aarav Sharma",
+    "pin": "SAH-4821",
+    "created_at_unix": 1788673937
+  },
+  "9123456789": {
+    "citizen_id": "CTZ-76971",
+    "phone": "9123456789",
+    "name": "Priya Verma",
+    "pin": "SAH-3097",
+    "created_at_unix": 1788673946
+  },
+  "mahek.aggarwal@example.com": {
+    "citizen_id": "CTZ-73801",
+    "phone": "mahek.aggarwal@example.com",
+    "email": "mahek.aggarwal@example.com",
+    "name": "Mahek Aggarwal",
+    "pin": "SAH-5289",
+    "google_sub": "109876543210123456789",
+    "picture": "https://lh3.googleusercontent.com/a/test-avatar",
+    "auth_provider": "google",
+    "created_at_unix": 1788681021
+  }
+}

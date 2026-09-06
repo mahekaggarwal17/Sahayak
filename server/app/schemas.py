@@ -112,3 +112,66 @@ class RecordingsListResponse(BaseModel):
     total_count: int
     recordings: list[RecordingSummaryResponse]
 
+
+# --- Citizen Auth & Profile Schemas ---
+
+class CitizenLoginRequest(BaseModel):
+    phone: str = Field(min_length=10, max_length=15)
+    name: str | None = Field(default=None, max_length=120)
+    pin: str | None = Field(default=None, max_length=20)
+
+
+class GoogleLoginRequest(BaseModel):
+    credential: str = Field(min_length=10)
+
+
+class CitizenAuthResponse(BaseModel):
+    token: str
+    citizen_id: str
+    phone: str
+    name: str
+    pin: str
+    email: str | None = None
+    picture: str | None = None
+    message: str = "Authenticated successfully."
+
+
+class CitizenProfileResponse(BaseModel):
+    citizen_id: str
+    phone: str
+    name: str
+    pin: str
+    email: str | None = None
+    picture: str | None = None
+
+
+# --- Civic Ticket Schemas ---
+
+class TicketCreateRequest(BaseModel):
+    problem: str = Field(min_length=3, max_length=1000)
+    category: str = Field(default="Municipal Civic Services", max_length=120)
+    address: str = Field(default="Reported via Sahayak Voice Session", max_length=300)
+    department: str | None = Field(default=None, max_length=200)
+    ticket_id: str | None = Field(default=None, max_length=50)
+    citizen_pin: str | None = Field(default=None, max_length=30)
+
+
+class TicketResponse(BaseModel):
+    id: str
+    problem: str
+    category: str
+    category_icon: str = "📋"
+    status: str = "In Progress"
+    address: str
+    department: str
+    raised: str
+    updated: str
+    citizen_pin: str
+    citizen_id: str | None = None
+    timestamp_unix: int
+
+
+class TicketsListResponse(BaseModel):
+    total_count: int
+    tickets: list[TicketResponse]
+

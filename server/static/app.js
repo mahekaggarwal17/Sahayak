@@ -43,7 +43,6 @@ const emergencyBanner = document.getElementById("emergencyBanner");
 const liveCaptionsCard = document.getElementById("liveCaptionsCard");
 const liveCaptionsText = document.getElementById("liveCaptionsText");
 const captionsEqualizer = document.getElementById("captionsEqualizer");
-const captionVisibilityText = document.getElementById("captionVisibilityText");
 
 // Metrics Elements
 const metricChannel = document.getElementById("metricChannel");
@@ -58,11 +57,323 @@ const statTotalDuration = document.getElementById("statTotalDuration");
 const storageSearchInput = document.getElementById("storageSearchInput");
 const recordingsList = document.getElementById("recordingsList");
 
-// ─── CITIZEN PIN (single unique PIN per user, persisted in localStorage) ────
+// Citizen Auth & Recording State
+let currentCitizen = null;
+let localAudioConnected = false;
+
+function getAuthToken() {
+    return localStorage.getItem("sahayak_auth_token") || "";
+}
+
+function getAuthHeaders(extraHeaders = {}) {
+    const headers = { ...extraHeaders };
+    const token = getAuthToken();
+    if (token) {
+        headers["Authorization"] = `Bearer ${token}`;
+    }
+    return headers;
+}
+
+async function checkAuthStatus() {
+    const token = getAuthToken();
+    if (!token) {
+        updateAuthUI(null);
+        return;
+    }
+    try {
+        const res = await fetch("/v1/auth/me", {
+            headers: { "Authorization": `Bearer ${token}` }
+        });
+        if (res.ok) {
+            currentCitizen = await res.json();
+            updateAuthUI(currentCitizen);
+        } else {
+            logoutCitizen(false);
+        }
+    } catch (e) {
+        console.warn("Auth check failed:", e);
+    }
+}
+
+function updateAuthUI(citizen) {
+    const btnLogin = document.getElementById("btnCitizenLogin");
+    const badge = document.getElementById("citizenProfileBadge");
+    const nameLabel = document.getElementById("citizenNameLabel");
+    const pinBadge = document.getElementById("citizenPinBadge");
+    const avatar = badge ? badge.querySelector(".citizen-avatar") : null;
+
+    if (citizen) {
+        if (btnLogin) btnLogin.classList.add("hidden");
+        if (badge) badge.classList.remove("hidden");
+        if (nameLabel) nameLabel.textContent = citizen.name || "Citizen";
+        if (pinBadge) pinBadge.textContent = `PIN: ${citizen.pin || "SAH-XXXX"}`;
+        if (avatar) {
+            if (citizen.picture) {
+                avatar.innerHTML = `<img src="${escapeHtml(citizen.picture)}" alt="${escapeHtml(citizen.name || 'Citizen')}" class="citizen-avatar-img" referrerpolicy="no-referrer">`;
+            } else {
+                avatar.textContent = "👤";
+            }
+        }
+        if (citizen.pin) {
+            localStorage.setItem("sahayak_citizen_pin", citizen.pin);
+        }
+    } else {
+        if (btnLogin) btnLogin.classList.remove("hidden");
+        if (badge) badge.classList.add("hidden");
+        if (avatar) avatar.textContent = "👤";
+    }
+}
+
+let googleAuthInitialized = false;
+let googleClientIdCache = null;
+
+async function initGoogleAuth() {
+    try {
+        if (!googleClientIdCache) {
+            try {
+                const res = await fetch("/v1/auth/google-config");
+                if (res.ok) {
+                    const data = await res.json();
+                    googleClientIdCache = data.client_id;
+                }
+            } catch (e) {
+                console.warn("Could not fetch /v1/auth/google-config:", e);
+            }
+            if (!googleClientIdCache) {
+                googleClientIdCache = "962346377917-nk61oe72ckp9vi8edfulktcr1prfp10d.apps.googleusercontent.com";
+            }
+        }
+
+        // Update Origin Label & Link
+        const originLabel = document.getElementById("currentOriginLabel");
+        const originTip = document.getElementById("googleOriginTip");
+        if (originLabel) {
+            originLabel.textContent = window.location.origin;
+        }
+        if (originTip && window.location.hostname === "127.0.0.1") {
+            const localhostUrl = window.location.href.replace("127.0.0.1", "localhost");
+            originTip.innerHTML = ` · <a href="${localhostUrl}" class="origin-switch-link" title="Open via localhost if registered in Google Console">Switch to localhost</a>`;
+        } else if (originTip && window.location.hostname === "localhost") {
+            originTip.innerHTML = ` · <span style="color:var(--green)">✓ Standard OAuth origin</span>`;
+        }
+
+        if (window.google && window.google.accounts && window.google.accounts.id) {
+            window.google.accounts.id.initialize({
+                client_id: googleClientIdCache,
+                callback: handleGoogleLoginSuccess,
+                auto_select: false,
+                cancel_on_tap_outside: true,
+            });
+
+            const btnContainer = document.getElementById("googleSignInButton");
+            if (btnContainer) {
+                btnContainer.innerHTML = ""; // Always clear to ensure exactly ONE button
+                window.google.accounts.id.renderButton(btnContainer, {
+                    theme: "outline",
+                    size: "large",
+                    type: "standard",
+                    shape: "rectangular",
+                    text: "signin_with",
+                    logo_alignment: "left",
+                    width: 340,
+                });
+            }
+            googleAuthInitialized = true;
+        } else {
+            setTimeout(() => {
+                if (!googleAuthInitialized && window.google && window.google.accounts) {
+                    initGoogleAuth();
+                }
+            }, 600);
+        }
+    } catch (err) {
+        console.error("Error initializing Google Auth:", err);
+    }
+}
+
+async function handleGoogleLoginSuccess(response) {
+    if (!response || !response.credential) {
+        console.error("Google login callback missing credential", response);
+        showToast("Google sign-in did not return a credential.", "error");
+        return;
+    }
+
+    const errEl = document.getElementById("authErrorMsg");
+    if (errEl) {
+        errEl.classList.add("hidden");
+        errEl.style.display = "none";
+    }
+
+    try {
+        showToast("Verifying Google account with SAHAYAK...", "info", 3000);
+        const res = await fetch("/v1/auth/google", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ credential: response.credential })
+        });
+
+        const data = await res.json();
+        if (!res.ok) {
+            throw new Error(data.detail || "Google verification failed");
+        }
+
+        localStorage.setItem("sahayak_auth_token", data.token);
+        if (data.pin) {
+            localStorage.setItem("sahayak_citizen_pin", data.pin);
+        }
+
+        currentCitizen = {
+            citizen_id: data.citizen_id,
+            phone: data.phone,
+            name: data.name,
+            email: data.email,
+            picture: data.picture,
+            pin: data.pin
+        };
+
+        updateAuthUI(currentCitizen);
+        closeAuthModal();
+        showToast(`Welcome ${data.name}! Verified via Google (PIN: ${data.pin})`, "success", 5000);
+        await loadTickets();
+        await loadRecordings();
+    } catch (err) {
+        console.error("Google Auth failed:", err);
+        if (errEl) {
+            errEl.textContent = `⚠ Google Sign-In failed: ${err.message}`;
+            errEl.classList.remove("hidden");
+            errEl.style.display = "flex";
+        }
+        showToast(`Google Sign-In failed: ${err.message}`, "error");
+    }
+}
+window.handleGoogleLoginSuccess = handleGoogleLoginSuccess;
+window.initGoogleAuth = initGoogleAuth;
+
+function openAuthModal() {
+    const modal = document.getElementById("citizenAuthModal");
+    if (modal) {
+        modal.classList.remove("hidden");
+        modal.removeAttribute("hidden");
+        modal.style.display = "flex";
+        modal.classList.add("active");
+    }
+    const err = document.getElementById("authErrorMsg");
+    if (err) {
+        err.classList.add("hidden");
+        err.style.display = "none";
+    }
+    initGoogleAuth();
+    setTimeout(() => {
+        const phoneInput = document.getElementById("inputCitizenPhone");
+        if (phoneInput) phoneInput.focus();
+    }, 60);
+}
+
+function closeAuthModal() {
+    const modal = document.getElementById("citizenAuthModal");
+    if (modal) {
+        modal.classList.add("hidden");
+        modal.setAttribute("hidden", "");
+        modal.style.display = "none";
+        modal.classList.remove("active");
+    }
+}
+
+function handleModalBackdropClick(event) {
+    if (event.target.id === "citizenAuthModal") {
+        closeAuthModal();
+    }
+}
+
+function fillDemoPersona(phone, name, pin) {
+    const phoneInput = document.getElementById("inputCitizenPhone");
+    const nameInput = document.getElementById("inputCitizenName");
+    const pinInput = document.getElementById("inputCitizenPin");
+    if (phoneInput) phoneInput.value = phone;
+    if (nameInput) nameInput.value = name;
+    if (pinInput) pinInput.value = pin;
+}
+
+// Close modal on Escape key
+document.addEventListener("keydown", (e) => {
+    if (e.key === "Escape") {
+        closeAuthModal();
+        closeComplaintModal();
+    }
+});
+
+async function handleCitizenLoginSubmit(event) {
+    if (event && event.preventDefault) event.preventDefault();
+    const phoneInput = document.getElementById("inputCitizenPhone");
+    const nameInput = document.getElementById("inputCitizenName");
+    const pinInput = document.getElementById("inputCitizenPin");
+    const phone = phoneInput ? phoneInput.value.trim() : "";
+    const name = nameInput ? nameInput.value.trim() : "";
+    const pin = pinInput ? pinInput.value.trim() : "";
+    const btnSubmit = document.getElementById("btnSubmitAuth");
+    const errEl = document.getElementById("authErrorMsg");
+
+    try {
+        if (btnSubmit) {
+            btnSubmit.disabled = true;
+            btnSubmit.innerHTML = `<span>⏳ Verifying &amp; Logging In...</span>`;
+        }
+        const res = await fetch("/v1/auth/citizen-login", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ phone, name, pin: pin || null })
+        });
+        const data = await res.json();
+        if (!res.ok) {
+            throw new Error(data.detail || "Authentication failed");
+        }
+        localStorage.setItem("sahayak_auth_token", data.token);
+        currentCitizen = {
+            citizen_id: data.citizen_id,
+            phone: data.phone,
+            name: data.name,
+            pin: data.pin
+        };
+        updateAuthUI(currentCitizen);
+        closeAuthModal();
+        await loadTickets();
+        await loadRecordings();
+    } catch (err) {
+        if (errEl) {
+            errEl.textContent = `⚠ ${err.message}`;
+            errEl.classList.remove("hidden");
+            errEl.style.display = "flex";
+        }
+    } finally {
+        if (btnSubmit) {
+            btnSubmit.disabled = false;
+            btnSubmit.innerHTML = `<span>🔐 Login &amp; Connect Identity</span>`;
+        }
+    }
+}
+
+async function quickDemoLogin() {
+    fillDemoPersona("9876543210", "Rajesh Kumar (Citizen Demo)", "SAH-4821");
+    await handleCitizenLoginSubmit({ preventDefault: () => {} });
+}
+
+function logoutCitizen(reload = true) {
+    localStorage.removeItem("sahayak_auth_token");
+    currentCitizen = null;
+    updateAuthUI(null);
+    if (reload) {
+        loadTickets();
+        loadRecordings();
+    }
+}
+
+// ─── CITIZEN PIN ────────────────────────────────────────────────────────────
 function getCitizenPin() {
+    if (currentCitizen && currentCitizen.pin) {
+        return currentCitizen.pin;
+    }
     let pin = localStorage.getItem('sahayak_citizen_pin');
     if (!pin) {
-        // Generate a new SAH-XXXX pin once and store it permanently
         const digits = Math.floor(1000 + Math.random() * 9000);
         pin = `SAH-${digits}`;
         localStorage.setItem('sahayak_citizen_pin', pin);
@@ -71,10 +382,118 @@ function getCitizenPin() {
 }
 
 // Initialize on page load
-document.addEventListener("DOMContentLoaded", () => {
-    loadRecordings();
-    loadTickets();
+document.addEventListener("DOMContentLoaded", async () => {
+    await checkAuthStatus();
+    initGoogleAuth();
+    await loadRecordings();
+    await loadTickets();
 });
+
+// ==========================================================================
+// TOAST NOTIFICATIONS & AUDIO RECOVERY
+// ==========================================================================
+function showToast(message, type = "info", duration = 5000) {
+    let container = document.getElementById("toastContainer");
+    if (!container) {
+        container = document.createElement("div");
+        container.id = "toastContainer";
+        container.className = "toast-container";
+        document.body.appendChild(container);
+    }
+    const toast = document.createElement("div");
+    toast.className = `toast toast-${type}`;
+    const icons = { info: "ℹ️", warning: "⚠️", error: "🚨", success: "✅" };
+    toast.innerHTML = `
+        <span class="toast-icon">${icons[type] || "ℹ️"}</span>
+        <div class="toast-msg">${escapeHtml(message)}</div>
+        <button class="toast-close" onclick="this.parentElement.remove()">✕</button>
+    `;
+    container.appendChild(toast);
+    if (duration > 0) {
+        setTimeout(() => {
+            toast.style.opacity = "0";
+            toast.style.transform = "translateY(8px)";
+            setTimeout(() => toast.remove(), 260);
+        }, duration);
+    }
+}
+
+async function acquireMicrophoneTrack() {
+    // 1. Release any lingering tracks to free audio hardware
+    if (localAudioTrack) {
+        try {
+            localAudioTrack.stop();
+            localAudioTrack.close();
+        } catch (e) {
+            console.warn("Could not close previous track:", e);
+        }
+        localAudioTrack = null;
+    }
+
+    // Tier 1: Agora recommended conversational voice profile (Mono 32kHz, AEC, ANS, AGC)
+    try {
+        console.log("Acquiring microphone (Tier 1: speech_standard with full processing)...");
+        return await AgoraRTC.createMicrophoneAudioTrack({
+            encoderConfig: "speech_standard",
+            AEC: true,
+            ANS: true,
+            AGC: true
+        });
+    } catch (err1) {
+        console.warn("Tier 1 mic acquisition failed:", err1);
+    }
+
+    // Tier 2: speech_standard with AEC only (avoids noise suppression hardware conflicts)
+    try {
+        console.log("Acquiring microphone (Tier 2: speech_standard AEC only)...");
+        return await AgoraRTC.createMicrophoneAudioTrack({
+            encoderConfig: "speech_standard",
+            AEC: true
+        });
+    } catch (err2) {
+        console.warn("Tier 2 mic acquisition failed:", err2);
+    }
+
+    // Tier 3: speech_standard without audio processing constraints
+    try {
+        console.log("Acquiring microphone (Tier 3: speech_standard clean)...");
+        return await AgoraRTC.createMicrophoneAudioTrack({
+            encoderConfig: "speech_standard"
+        });
+    } catch (err3) {
+        console.warn("Tier 3 mic acquisition failed:", err3);
+    }
+
+    // Tier 4: Zero constraints - pure browser default stream
+    try {
+        console.log("Acquiring microphone (Tier 4: bare createMicrophoneAudioTrack)...");
+        return await AgoraRTC.createMicrophoneAudioTrack();
+    } catch (err4) {
+        console.warn("Tier 4 mic acquisition failed:", err4);
+    }
+
+    // Tier 5: Enumerate individual microphone devices and test each one
+    try {
+        const devices = await AgoraRTC.getMicrophones();
+        console.log("Enumerating available microphones:", devices);
+        for (const dev of devices) {
+            if (!dev.deviceId) continue;
+            try {
+                console.log(`Trying specific microphone ID: ${dev.deviceId} (${dev.label})...`);
+                return await AgoraRTC.createMicrophoneAudioTrack({
+                    microphoneId: dev.deviceId,
+                    encoderConfig: "speech_standard"
+                });
+            } catch (devErr) {
+                console.warn(`Device ${dev.deviceId} failed:`, devErr);
+            }
+        }
+    } catch (enumErr) {
+        console.warn("Device enumeration failed:", enumErr);
+    }
+
+    return null;
+}
 
 // ==========================================================================
 // CALL LIFECYCLE (START / END)
@@ -88,6 +507,12 @@ async function toggleCall() {
 }
 
 async function startCall() {
+    if (typeof AgoraRTC === "undefined") {
+        showToast("Agora WebRTC SDK failed to load. Please check your internet connection or ad-blocker.", "error", 8000);
+        updateState("idle", "SDK offline — check network connection");
+        return;
+    }
+
     try {
         updateState("connecting", "Initializing voice session...");
         btnStart.disabled = true;
@@ -97,7 +522,7 @@ async function startCall() {
         // 1. Bootstrap conversation session from backend
         const bootstrapRes = await fetch("/v1/conversation/bootstrap", {
             method: "POST",
-            headers: { "Content-Type": "application/json" },
+            headers: getAuthHeaders({ "Content-Type": "application/json" }),
             body: JSON.stringify({})
         });
 
@@ -201,16 +626,19 @@ async function startCall() {
             }
         }
 
-        // 4. Create and publish microphone audio track
-        localAudioTrack = await AgoraRTC.createMicrophoneAudioTrack({
-            encoderConfig: "high_quality_stereo",
-            AEC: true,
-            ANS: true
-        });
-        await rtcClient.publish([localAudioTrack]);
+        // 4. Create and publish microphone audio track with resilient multi-profile fallback
+        updateState("connecting", "Connecting audio & microphone...");
+        localAudioTrack = await acquireMicrophoneTrack();
 
-        // Start local recording buffer in case remote track joins shortly
-        initDualStreamRecording(localAudioTrack, null);
+        if (localAudioTrack) {
+            await rtcClient.publish([localAudioTrack]);
+            // Start local recording buffer in case remote track joins shortly
+            initDualStreamRecording(localAudioTrack, null);
+        } else {
+            console.warn("Continuing in Listen & Chat Mode without microphone.");
+            showToast("Microphone is currently unavailable (in use by another app or permissions). Connected in Listen & Text mode so you can hear SAHAYAK.", "warning", 8000);
+            addTranscriptMessage("system", "🎙️ Notice: Microphone could not be accessed. You can still hear SAHAYAK speak in real-time and interact using the quick prompt chips below.");
+        }
 
         // 5. Connect Agora Signaling (RTM 2.x) for Real-Time Transcripts & Live Captions
         await connectAgoraRTM(sessionData);
@@ -219,7 +647,7 @@ async function startCall() {
         updateState("connecting", "Connecting SAHAYAK Voice Agent...");
         const joinRes = await fetch("/v1/conversation/join", {
             method: "POST",
-            headers: { "Content-Type": "application/json" },
+            headers: getAuthHeaders({ "Content-Type": "application/json" }),
             body: JSON.stringify({
                 channel_name: sessionData.channel_name,
                 requester_rtc_uid: sessionData.requester_rtc_uid
@@ -248,10 +676,11 @@ async function startCall() {
         const sd = document.getElementById('statusDot');
         if (sd) sd.classList.add('active');
         btnMute.disabled = false;
+        btnMuteText.textContent = localAudioTrack ? "Mute Mic" : "Connect Mic";
         btnInterrupt.disabled = false;
 
         updateLiveCaptions("नमस्ते! मैं सहायक हूँ, आपका पब्लिक यूटिलिटी असिस्टेंट। आप किसी भी नागरिक समस्या के लिए मुझसे बात कर सकते हैं।", true);
-        updateState("active", "SAHAYAK is ready. Speak in Hindi, English, or Hinglish!");
+        updateState("active", localAudioTrack ? "SAHAYAK is ready. Speak in Hindi, English, or Hinglish!" : "Listen & Chat Mode — hear SAHAYAK and use prompt chips below");
 
         // Latency measurement loop
         timerInterval = setInterval(() => {
@@ -267,7 +696,8 @@ async function startCall() {
 
     } catch (error) {
         console.error("Call initialization error:", error);
-        alert(`Failed to start session: ${error.message}`);
+        showToast(`Could not start session: ${error.message}`, "error", 8000);
+        addTranscriptMessage("system", `Call initialization error: ${error.message}`);
         await endCall();
     }
 }
@@ -331,6 +761,7 @@ async function endCall() {
 
     isCallActive = false;
     isMuted = false;
+    localAudioConnected = false;
     currentSession = null;
     callStartTime = null;
 
@@ -417,6 +848,10 @@ function handleRtmSignalingMessage(event) {
 
                 // Add or update assistant turn in transcript feed
                 upsertTranscriptTurn("agent", text, payload.turn_id, isFinal);
+
+                if (isFinal) {
+                    detectAndRegisterTicketFromText(text);
+                }
             }
         } else if (objType === "user.transcription") {
             // Citizen / User Speech
@@ -437,6 +872,71 @@ function handleRtmSignalingMessage(event) {
         }
     } catch (e) {
         console.warn("Error parsing RTM signaling message:", e);
+    }
+}
+
+const seenTickets = new Set();
+async function detectAndRegisterTicketFromText(text) {
+    let ticketId = null;
+    const match = text.match(/SHK-CIVIC-\d{4}/i);
+    if (match) {
+        ticketId = match[0].toUpperCase();
+    } else {
+        const matchAlt = text.match(/(?:ticket|complaint|शिकायत)\s*(?:id|number|no|संख्या)?\s*[:#-]?\s*(\d{4,6})/i);
+        if (matchAlt) {
+            ticketId = `SHK-CIVIC-${matchAlt[1]}`;
+        }
+    }
+    if (!ticketId) return;
+
+    if (seenTickets.has(ticketId)) return;
+    seenTickets.add(ticketId);
+
+    console.log("Detected AI-generated ticket:", ticketId);
+
+    // Extract context: find the latest user problem description from callTranscripts
+    let userProblem = "Civic complaint reported in voice session.";
+    for (let i = callTranscripts.length - 1; i >= 0; i--) {
+        if (callTranscripts[i].speaker === "user" && callTranscripts[i].text) {
+            userProblem = callTranscripts[i].text;
+            break;
+        }
+    }
+
+    // Determine category from keywords
+    const lower = (text + " " + userProblem).toLowerCase();
+    let category = "Municipal Civic Services";
+    if (lower.includes("kachra") || lower.includes("garbage") || lower.includes("waste") || lower.includes("safai")) {
+        category = "Waste & Sanitation";
+    } else if (lower.includes("light") || lower.includes("bijli") || lower.includes("andhera") || lower.includes("pole")) {
+        category = "Street Lighting";
+    } else if (lower.includes("pothole") || lower.includes("gaddha") || lower.includes("road") || lower.includes("sadak")) {
+        category = "Roads & Potholes";
+    } else if (lower.includes("paani") || lower.includes("water") || lower.includes("pipeline") || lower.includes("tanker")) {
+        category = "Water Supply";
+    } else if (lower.includes("wire") || lower.includes("spark") || lower.includes("gas") || lower.includes("112")) {
+        category = "Emergency & Hazards";
+    }
+
+    try {
+        const res = await fetch("/v1/tickets", {
+            method: "POST",
+            headers: getAuthHeaders({ "Content-Type": "application/json" }),
+            body: JSON.stringify({
+                ticket_id: ticketId,
+                problem: userProblem,
+                category: category,
+                address: "Captured via SAHAYAK Voice Call",
+                citizen_pin: getCitizenPin()
+            })
+        });
+        if (res.ok) {
+            console.log("Successfully persisted ticket:", ticketId);
+            await loadTickets();
+            addTranscriptMessage("system", `🎫 Ticket ${ticketId} registered with Municipal Authority and saved to 'My Tickets'.`);
+        }
+    } catch (e) {
+        console.warn("Could not auto-register detected ticket:", e);
     }
 }
 
@@ -517,12 +1017,13 @@ function initDualStreamRecording(localTrack, remoteTrack) {
             mediaStreamDestination = audioContext.createMediaStreamDestination();
         }
 
-        // Add local mic stream
-        if (localTrack && localTrack.getMediaStreamTrack) {
+        // Add local mic stream (only once per session to avoid doubled volume and clipping)
+        if (localTrack && localTrack.getMediaStreamTrack && !localAudioConnected) {
             try {
                 const localMediaStream = new MediaStream([localTrack.getMediaStreamTrack()]);
                 const localSource = audioContext.createMediaStreamSource(localMediaStream);
                 localSource.connect(mediaStreamDestination);
+                localAudioConnected = true;
             } catch (e) {
                 console.warn("Could not connect local audio track to recorder:", e);
             }
@@ -570,10 +1071,17 @@ async function finalizeAndSaveRecording(session, durationSeconds, transcripts) {
         let audioBase64 = "";
 
         if (mediaRecorder && mediaRecorder.state !== "inactive") {
-            await new Promise((resolve) => {
-                mediaRecorder.onstop = resolve;
-                mediaRecorder.stop();
-            });
+            await Promise.race([
+                new Promise((resolve) => {
+                    mediaRecorder.onstop = resolve;
+                    try {
+                        mediaRecorder.stop();
+                    } catch (e) {
+                        resolve();
+                    }
+                }),
+                new Promise((resolve) => setTimeout(resolve, 1500))
+            ]);
         }
 
         if (audioContext && audioContext.state !== "closed") {
@@ -600,20 +1108,25 @@ async function finalizeAndSaveRecording(session, durationSeconds, transcripts) {
             metadata: {
                 agent_id: session.agent_id || "",
                 requester_rtc_uid: session.requester_rtc_uid || "",
+                citizen_pin: getCitizenPin(),
+                citizen_id: currentCitizen ? currentCitizen.citizen_id : "",
             }
         };
 
         const res = await fetch("/v1/recordings", {
             method: "POST",
-            headers: { "Content-Type": "application/json" },
+            headers: getAuthHeaders({ "Content-Type": "application/json" }),
             body: JSON.stringify(savePayload)
         });
 
         if (res.ok) {
             const savedRec = await res.json();
             console.log("Call successfully recorded & saved to storage:", savedRec.id);
-            // Refresh storage tab list
+            // Refresh storage tab list and tickets
             await loadRecordings();
+            await loadTickets();
+            const tNum = savedRec.ticket_number ? ` (Ticket #${savedRec.ticket_number})` : "";
+            showToast(`Call recorded & complaint saved${tNum}! Check 'My Tickets' and 'Recordings'.`, "success", 5000);
         } else {
             console.warn("Server recording save failed status:", res.status);
         }
@@ -621,6 +1134,44 @@ async function finalizeAndSaveRecording(session, durationSeconds, transcripts) {
     } catch (err) {
         console.error("Error finalizing recording save:", err);
     }
+}
+
+async function generateTicketForRecording(recordingId) {
+    try {
+        showToast("Generating official complaint ticket...", "info", 2000);
+        const res = await fetch(`/v1/recordings/${encodeURIComponent(recordingId)}/generate-ticket`, {
+            method: "POST",
+            headers: getAuthHeaders({ "Content-Type": "application/json" })
+        });
+        if (!res.ok) {
+            throw new Error("Could not generate ticket for this recording.");
+        }
+        const ticket = await res.json();
+        showToast(`🎫 Ticket ${ticket.id} generated and saved to My Tickets!`, "success", 4000);
+        await loadRecordings();
+        await loadTickets();
+        jumpToTicket(ticket.id);
+    } catch (e) {
+        console.error("Error generating ticket:", e);
+        showToast(e.message || "Failed to generate ticket.", "error");
+    }
+}
+
+function jumpToTicket(ticketId) {
+    if (!ticketId) return;
+    switchTab('tickets');
+    setTimeout(() => {
+        const el = document.getElementById(`ticket-card-${ticketId}`);
+        if (el) {
+            el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            el.style.borderColor = 'var(--accent)';
+            el.style.boxShadow = '0 0 24px rgba(124,109,250,0.6)';
+            setTimeout(() => {
+                el.style.borderColor = '';
+                el.style.boxShadow = '';
+            }, 3000);
+        }
+    }, 120);
 }
 
 function blobToBase64(blob) {
@@ -637,7 +1188,9 @@ function blobToBase64(blob) {
 // ==========================================================================
 async function loadRecordings() {
     try {
-        const res = await fetch("/v1/recordings");
+        const res = await fetch("/v1/recordings", {
+            headers: getAuthHeaders()
+        });
         if (!res.ok) return;
 
         const data = await res.json();
@@ -674,7 +1227,9 @@ function renderRecordings(recordings) {
     recordingsList.innerHTML = recordings.map(rec => {
         const isUrgent = rec.category === "Urgent Public Safety";
         const catClass = isUrgent ? "category-pill danger" : "category-pill";
-        const ticketHtml = rec.ticket_number ? `<span class="ticket-tag">#${escapeHtml(rec.ticket_number)}</span>` : "";
+        const ticketHtml = rec.ticket_number 
+            ? `<span class="ticket-tag clickable" onclick="jumpToTicket('${escapeHtml(rec.ticket_number)}')" title="Click to view ticket in My Tickets">🎫 #${escapeHtml(rec.ticket_number)}</span>` 
+            : `<button class="btn-generate-ticket" onclick="generateTicketForRecording('${escapeHtml(rec.id)}')" title="Generate complaint ticket from this call">🎫 Generate Ticket</button>`;
 
         return `
             <div class="recording-card" id="card-${escapeHtml(rec.id)}">
@@ -750,10 +1305,11 @@ async function deleteRecording(id) {
             if (card) card.remove();
             await loadRecordings();
         } else {
-            alert("Failed to delete recording.");
+            showToast("Failed to delete recording.", "error");
         }
     } catch (e) {
         console.error("Error deleting recording:", e);
+        showToast("Error deleting recording.", "error");
     }
 }
 
@@ -771,6 +1327,14 @@ async function toggleTranscriptAccordion(id) {
 
     try {
         const res = await fetch(`/v1/recordings/${encodeURIComponent(id)}`);
+        if (res.status === 404) {
+            showToast("Recording was deleted or not found.", "warning");
+            const card = document.getElementById(`card-${id}`);
+            if (card) card.remove();
+            allRecordingsData = allRecordingsData.filter(r => r.id !== id);
+            renderRecordings(allRecordingsData);
+            return;
+        }
         if (!res.ok) throw new Error("Could not fetch details.");
         const detail = await res.json();
         const turns = detail.transcripts || [];
@@ -873,11 +1437,31 @@ function checkForCivicEmergency(text) {
     }
 }
 
-function toggleMute() {
-    if (!localAudioTrack) return;
+async function toggleMute() {
+    if (!localAudioTrack) {
+        // Attempt to connect microphone dynamically
+        updateState("connecting", "Connecting microphone...");
+        const track = await acquireMicrophoneTrack();
+        if (track) {
+            localAudioTrack = track;
+            if (rtcClient) {
+                await rtcClient.publish([localAudioTrack]);
+                initDualStreamRecording(localAudioTrack, remoteAudioTrack);
+            }
+            isMuted = false;
+            btnMuteText.textContent = "Mute Mic";
+            updateState("active", "Microphone connected! Speak with SAHAYAK.");
+            showToast("Microphone connected successfully! You can now speak.", "success", 4000);
+            addTranscriptMessage("system", "Microphone connected! You can now speak.");
+        } else {
+            updateState("active", "Listen & Chat Mode — microphone still unavailable.");
+            showToast("Microphone still in use or inaccessible. Close other apps (Teams/Zoom) and try again.", "error", 6000);
+        }
+        return;
+    }
     isMuted = !isMuted;
     localAudioTrack.setEnabled(!isMuted);
-    btnMuteText.textContent = isMuted ? "Unmute" : "Mute";
+    btnMuteText.textContent = isMuted ? "Unmute Mic" : "Mute Mic";
     addTranscriptMessage("system", isMuted ? "Microphone muted." : "Microphone unmuted.");
 }
 
@@ -934,11 +1518,22 @@ function updateState(state, text) {
     }
 }
 
-function simulatePrompt(text) {
-    addTranscriptMessage("user", text);
+async function simulatePrompt(text) {
+    upsertTranscriptTurn("user", text, Date.now(), true);
     checkForCivicEmergency(text);
 
-    if (!isCallActive) {
+    if (isCallActive && rtmClient && currentSession) {
+        try {
+            await rtmClient.publish(currentSession.channel_name, JSON.stringify({
+                object: "user.transcription",
+                text: text,
+                final: true
+            }));
+            console.log("Quick prompt sent to AI via Agora RTM:", text);
+        } catch (e) {
+            console.warn("Could not transmit prompt via RTM:", e);
+        }
+    } else if (!isCallActive) {
         setTimeout(() => {
             addTranscriptMessage("system", "To speak with SAHAYAK, click 'Start Voice Session' above.");
         }, 400);
@@ -1068,13 +1663,63 @@ const SEED_TICKETS = [
     }
 ];
 
-function loadTickets() {
-    // Merge seed data with any dynamically created tickets stored in sessionStorage.
-    // Each ticket receives the user's single Citizen PIN (generated once per device).
+let allTicketsData = [];
+
+async function loadTickets() {
     const userPin = getCitizenPin();
+    try {
+        const query = userPin ? `?pin=${encodeURIComponent(userPin)}` : "";
+        const res = await fetch(`/v1/tickets${query}`, {
+            headers: getAuthHeaders()
+        });
+        if (res.ok) {
+            const data = await res.json();
+            const tickets = (data.tickets || []).map(t => ({
+                id: t.id,
+                problem: t.problem,
+                category: t.category,
+                categoryIcon: t.category_icon || "📋",
+                status: t.status,
+                address: t.address,
+                department: t.department,
+                raised: t.raised,
+                updated: t.updated,
+                pin: t.citizen_pin || userPin
+            }));
+            allTicketsData = tickets;
+            renderTickets(tickets);
+            return;
+        }
+    } catch (e) {
+        console.warn("Could not fetch tickets from backend:", e);
+    }
+
+    // Fallback if offline
     const dynamic = JSON.parse(sessionStorage.getItem('sahayak_tickets') || '[]');
     const all = [...dynamic, ...SEED_TICKETS].map(t => ({ ...t, pin: userPin }));
+    allTicketsData = all;
     renderTickets(all);
+}
+
+function filterTickets(category, btn) {
+    if (btn) {
+        document.querySelectorAll(".ticket-filter-pill").forEach(p => p.classList.remove("active"));
+        btn.classList.add("active");
+    }
+    if (!category || category === "all") {
+        renderTickets(allTicketsData);
+        return;
+    }
+    const filtered = allTicketsData.filter(t => {
+        const cat = (t.category || "").toLowerCase() + " " + (t.problem || "").toLowerCase();
+        if (category === "waste") return cat.includes("waste") || cat.includes("garbage");
+        if (category === "water") return cat.includes("water");
+        if (category === "light") return cat.includes("light") || cat.includes("electric");
+        if (category === "road") return cat.includes("road") || cat.includes("pothole");
+        if (category === "emergency") return cat.includes("hazard") || cat.includes("emergency") || cat.includes("urgent") || cat.includes("accident");
+        return true;
+    });
+    renderTickets(filtered);
 }
 
 function renderTickets(tickets) {
@@ -1095,7 +1740,7 @@ function renderTickets(tickets) {
         const statusIcon  = isSolved ? '✅' : '🔄';
         const maskedPin   = '••••••••';
         return `
-        <div class="ticket-card ${isSolved ? 'solved' : ''}">
+        <div class="ticket-card ${isSolved ? 'solved' : ''}" id="ticket-card-${escapeHtml(t.id)}">
             <div class="ticket-card-top">
                 <div class="ticket-id-block">
                     <span class="ticket-cat-icon">${t.categoryIcon}</span>
@@ -1150,5 +1795,106 @@ function togglePin(index, actualPin) {
     pinEl.textContent = isHidden ? actualPin : '••••••••';
     pinEl.classList.toggle('revealed', isHidden);
     if (eyeEl) eyeEl.textContent = isHidden ? '🙈' : '👁';
+}
+
+// ─── FILE COMPLAINT MODAL ──────────────────────────────────────
+function openComplaintModal() {
+    const modal = document.getElementById("fileComplaintModal");
+    if (modal) {
+        modal.classList.remove("hidden");
+        modal.removeAttribute("hidden");
+        modal.style.display = "flex";
+        modal.classList.add("active");
+    }
+    const err = document.getElementById("complaintErrorMsg");
+    if (err) {
+        err.classList.add("hidden");
+        err.style.display = "none";
+    }
+    setTimeout(() => {
+        const prob = document.getElementById("inputComplaintProblem");
+        if (prob) prob.focus();
+    }, 60);
+}
+
+function closeComplaintModal() {
+    const modal = document.getElementById("fileComplaintModal");
+    if (modal) {
+        modal.classList.add("hidden");
+        modal.setAttribute("hidden", "");
+        modal.style.display = "none";
+        modal.classList.remove("active");
+    }
+}
+
+function handleComplaintModalBackdropClick(event) {
+    if (event.target.id === "fileComplaintModal") {
+        closeComplaintModal();
+    }
+}
+
+async function handleManualComplaintSubmit(event) {
+    if (event && event.preventDefault) event.preventDefault();
+    const catEl = document.getElementById("complaintCategorySelect");
+    const probEl = document.getElementById("inputComplaintProblem");
+    const addrEl = document.getElementById("inputComplaintAddress");
+    const errEl = document.getElementById("complaintErrorMsg");
+    const btnSubmit = document.getElementById("btnSubmitComplaint");
+
+    const category = catEl ? catEl.value : "Municipal Civic Services";
+    const problem = probEl ? probEl.value.trim() : "";
+    const address = addrEl ? addrEl.value.trim() : "";
+
+    if (!problem || problem.length < 5) {
+        if (errEl) {
+            errEl.textContent = "Please describe the problem in at least 5 characters.";
+            errEl.classList.remove("hidden");
+            errEl.style.display = "flex";
+        }
+        return;
+    }
+
+    try {
+        if (btnSubmit) {
+            btnSubmit.disabled = true;
+            btnSubmit.innerHTML = `<span>⏳ Registering Complaint...</span>`;
+        }
+
+        const res = await fetch("/v1/tickets", {
+            method: "POST",
+            headers: getAuthHeaders({ "Content-Type": "application/json" }),
+            body: JSON.stringify({
+                category,
+                problem,
+                address: address || "Reported via SAHAYAK Web Portal",
+                citizen_pin: getCitizenPin()
+            })
+        });
+
+        const data = await res.json();
+        if (!res.ok) {
+            throw new Error(data.detail || "Could not file complaint ticket.");
+        }
+
+        closeComplaintModal();
+        if (probEl) probEl.value = "";
+        if (addrEl) addrEl.value = "";
+
+        showToast(`✅ Ticket ${data.id} registered with Municipal Authority!`, "success", 5000);
+        await loadTickets();
+        switchTab("tickets");
+        jumpToTicket(data.id);
+    } catch (e) {
+        if (errEl) {
+            errEl.textContent = `⚠ ${e.message}`;
+            errEl.classList.remove("hidden");
+            errEl.style.display = "flex";
+        }
+    } finally {
+        if (btnSubmit) {
+            btnSubmit.disabled = false;
+            btnSubmit.innerHTML = `<span>🎫 Submit &amp; Generate Ticket</span>`;
+        }
+    }
 }
 
