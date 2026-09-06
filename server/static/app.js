@@ -54,12 +54,18 @@ const captionsSpeakerIcon = document.getElementById("captionsSpeakerIcon");
 const captionsSpeakerName = document.getElementById("captionsSpeakerName");
 const captionsLangBadge = document.getElementById("captionsLangBadge");
 const captionPreviousTurn = document.getElementById("captionPreviousTurn");
+const captionPreviousTurns = document.getElementById("captionPreviousTurns");
+const captionCursor = document.getElementById("captionCursor");
+const liveCaptionsContent = document.getElementById("liveCaptionsContent");
 const floatingSubtitlesBar = document.getElementById("floatingSubtitlesBar");
 const floatingSpeakerPill = document.getElementById("floatingSpeakerPill");
 const floatingSpeakerName = document.getElementById("floatingSpeakerName");
 const floatingSubtitlesText = document.getElementById("floatingSubtitlesText");
 const btnToggleFloatingCc = document.getElementById("btnToggleFloatingCc");
 const btnFloatingCcText = document.getElementById("btnFloatingCcText");
+let floatingCaptionsExpanded = false;
+let isThankYouFinalizing = false;
+let rollingTurnStack = [];
 
 // Metrics Elements
 const metricChannel = document.getElementById("metricChannel");
@@ -843,6 +849,7 @@ async function endCall() {
     localAudioConnected = false;
     currentSession = null;
     callStartTime = null;
+    isThankYouFinalizing = false;
 
     btnStart.disabled = false;
     btnStart.classList.remove("danger-btn");
@@ -919,9 +926,9 @@ function handleRtmSignalingMessage(event) {
         const payload = JSON.parse(rawData);
         const objType = payload.object;
 
-        if (objType === "assistant.transcription") {
+        if (objType === "assistant.transcription" || objType === "agent.transcription") {
             // Live AI Agent Speech
-            const text = (payload.text || "").trim();
+            const text = (payload.text || payload.transcript || payload.content || payload.message || "").trim();
             const turnStatus = payload.turn_status; // 0 = in progress, 1 = completed, 2 = interrupted
             const isFinal = turnStatus === 1;
 
@@ -936,15 +943,18 @@ function handleRtmSignalingMessage(event) {
                     detectAndRegisterTicketFromText(text);
                 }
             }
-        } else if (objType === "user.transcription") {
+        } else if (objType === "user.transcription" || objType === "citizen.transcription") {
             // Citizen / User Speech
-            const text = (payload.text || "").trim();
-            const isFinal = payload.final !== false;
+            const text = (payload.text || payload.transcript || payload.content || payload.message || "").trim();
+            const isFinal = payload.final !== false && payload.turn_status !== 0;
 
             if (text) {
                 updateLiveCaptions("user", text, true, isFinal);
                 upsertTranscriptTurn("user", text, payload.turn_id, isFinal);
                 checkForCivicEmergency(text);
+                if (isFinal) {
+                    checkThankYouAndFinalize(text);
+                }
             }
         } else if (objType === "message.state") {
             const rawState = payload.state;
@@ -1046,17 +1056,28 @@ function updateAgentPresenceState(state) {
 }
 
 // ==========================================================================
-// LIVE CAPTIONS & SUBTITLES ENGINE (DUAL-SPEAKER + WEB SPEECH API + FLOATING HUD)
+// LIVE CAPTIONS & SUBTITLES ENGINE (DUAL-SPEAKER + TRILINGUAL + ROLLING STACK)
 // ==========================================================================
 function updateLiveCaptions(speaker = "agent", text = "", isLive = true, isFinal = false, lang = null) {
     if (!text || !text.trim()) return;
     const cleanText = text.trim();
 
-    // 1. Automatic Language / Script Detection (Devanagari vs Latin)
-    const isHindi = /[\u0900-\u097F]/.test(cleanText);
-    const detectedLang = lang || (isHindi ? "हिन्दी" : "ENG");
+    // 1. Intelligent Script & Language Detection (Devanagari, Hinglish, English)
+    const isHindiDevanagari = /[\u0900-\u097F]/.test(cleanText);
+    let detectedLang = "ENG";
+    if (isHindiDevanagari) {
+        detectedLang = "हिन्दी";
+    } else {
+        const hinglishPattern = /\b(kachra|kuda|safai|paani|pani|bijli|andhera|light|sadak|sarak|gaddha|khadda|pothole|gali|mohalla|mera|meri|mere|aapka|aapki|aapke|nahi|nhi|hai|hain|kripya|kripaya|dhanyawad|dhanyavad|dhanyavaad|shukriya|namaste|bol|rha|raha|rahi|bhai|sahayak|karna|hoga|bhi|aur|se|par|ko|ek|do|din|kab|tak|shikayat)\b/i;
+        if (hinglishPattern.test(cleanText)) {
+            detectedLang = "HINGLISH";
+        }
+    }
+    if (lang) detectedLang = lang;
+
     if (captionsLangBadge) {
         captionsLangBadge.textContent = detectedLang;
+        captionsLangBadge.className = `captions-lang-chip ${detectedLang.toLowerCase()}`;
     }
 
     // 2. Speaker Attribution
@@ -1081,7 +1102,7 @@ function updateLiveCaptions(speaker = "agent", text = "", isLive = true, isFinal
     }
     setEqualizerActive(!isUser && isLive && !isFinal);
 
-    // 3. Update In-Card Caption Text
+    // 3. Update In-Card Caption Text & Blinking Live Cursor
     if (liveCaptionsText) {
         liveCaptionsText.textContent = cleanText;
         liveCaptionsText.classList.remove("placeholder");
@@ -1089,9 +1110,20 @@ function updateLiveCaptions(speaker = "agent", text = "", isLive = true, isFinal
         liveCaptionsText.classList.toggle("is-interim", !isFinal);
     }
 
-    // 4. Update Floating Subtitle HUD
+    const cur = document.getElementById("captionCursor") || captionCursor;
+    if (cur) {
+        if (!isFinal && isLive) {
+            cur.classList.remove("hidden");
+            cur.className = `caption-cursor ${isUser ? "user-cursor" : ""}`;
+        } else {
+            cur.classList.add("hidden");
+        }
+    }
+
+    // 4. Update Floating Subtitle HUD with Auto-Wrapping
     if (floatingSubtitlesText) {
         floatingSubtitlesText.textContent = cleanText;
+        floatingSubtitlesText.scrollTop = floatingSubtitlesText.scrollHeight;
     }
     if (floatingSpeakerPill) {
         floatingSpeakerPill.className = `floating-speaker-pill ${isUser ? "speaker-user" : ""}`;
@@ -1100,14 +1132,55 @@ function updateLiveCaptions(speaker = "agent", text = "", isLive = true, isFinal
         floatingSpeakerName.textContent = isUser ? "👤 YOU" : "🤖 SAHAYAK";
     }
 
-    // 5. Turn Finalization & Context Preservation
+    // 5. Rolling Multi-Turn Stack & Context Preservation
     if (isFinal) {
-        if (captionPreviousTurn) {
-            captionPreviousTurn.textContent = `${isUser ? "👤 You" : "🤖 SAHAYAK"}: "${cleanText}"`;
-            captionPreviousTurn.classList.remove("hidden");
+        const timeStr = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+        rollingTurnStack.push({
+            speaker: isUser ? "You" : "SAHAYAK",
+            icon: isUser ? "👤" : "🤖",
+            text: cleanText,
+            time: timeStr
+        });
+
+        // Retain last 3 turns
+        if (rollingTurnStack.length > 3) {
+            rollingTurnStack.shift();
         }
+
+        const prevContainer = document.getElementById("captionPreviousTurns") || captionPreviousTurns;
+        if (prevContainer) {
+            const pastTurns = rollingTurnStack.slice(0, -1);
+            if (pastTurns.length > 0) {
+                prevContainer.innerHTML = pastTurns.map((t, idx) => {
+                    const opacity = idx === pastTurns.length - 1 ? 0.75 : 0.5;
+                    return `<div class="caption-turn-prev" style="opacity: ${opacity};">
+                        <strong>${t.icon} ${t.speaker}:</strong> "${escapeHtml(t.text)}"
+                    </div>`;
+                }).join("");
+            }
+        }
+
         previousTurnCaption = cleanText;
     }
+
+    // Smooth auto-scroll live captions content
+    const bodyEl = document.getElementById("liveCaptionsContent") || liveCaptionsContent;
+    if (bodyEl) {
+        bodyEl.scrollTop = bodyEl.scrollHeight;
+    }
+}
+
+function toggleFloatingExpand() {
+    floatingCaptionsExpanded = !floatingCaptionsExpanded;
+    if (floatingSubtitlesBar) {
+        floatingSubtitlesBar.classList.toggle("expanded", floatingCaptionsExpanded);
+    }
+    const btn = document.getElementById("btnFloatingExpand");
+    if (btn) {
+        btn.classList.toggle("active", floatingCaptionsExpanded);
+        btn.title = floatingCaptionsExpanded ? "Collapse floating subtitles" : "Expand floating subtitles";
+    }
+    showToast(floatingCaptionsExpanded ? "Floating Subtitles: Expanded multi-line mode" : "Floating Subtitles: Standard mode", "info", 1800);
 }
 
 function toggleFloatingCaptions(forceState = null) {
@@ -1137,14 +1210,18 @@ function toggleCaptionFontSize() {
     if (liveCaptionsCard) {
         liveCaptionsCard.classList.toggle("captions-large", captionFontSizeLarge);
     }
-    const btn = document.getElementById("btnCaptionFontSize");
-    if (btn) {
-        btn.classList.toggle("active", captionFontSizeLarge);
+    if (floatingSubtitlesBar) {
+        floatingSubtitlesBar.classList.toggle("captions-large", captionFontSizeLarge);
     }
+    const btn1 = document.getElementById("btnCaptionFontSize");
+    if (btn1) btn1.classList.toggle("active", captionFontSizeLarge);
+    const btn2 = document.getElementById("btnFloatingFontSize");
+    if (btn2) btn2.classList.toggle("active", captionFontSizeLarge);
+
     showToast(captionFontSizeLarge ? "Accessibility: Large subtitles enabled" : "Subtitles set to normal size", "info", 2000);
 }
 
-async function copyCurrentCaption() {
+async function copyCurrentCaption(btnElement = null) {
     const text = liveCaptionsText ? liveCaptionsText.textContent.trim() : "";
     if (!text || text.includes("Live captions will stream")) {
         showToast("No active caption to copy", "info", 2000);
@@ -1153,6 +1230,22 @@ async function copyCurrentCaption() {
     try {
         await navigator.clipboard.writeText(text);
         showToast("Caption copied to clipboard! 📋", "success", 2500);
+
+        const btns = [
+            btnElement,
+            document.getElementById("btnCopyCaption"),
+            document.getElementById("btnFloatingCopy")
+        ].filter(Boolean);
+
+        btns.forEach(btn => {
+            const original = btn.textContent;
+            btn.textContent = "✓";
+            btn.style.color = "#10b981";
+            setTimeout(() => {
+                btn.textContent = original;
+                btn.style.color = "";
+            }, 1800);
+        });
     } catch (e) {
         showToast("Copied to clipboard", "success", 2000);
     }
@@ -1176,6 +1269,118 @@ function setEqualizerActive(active) {
             captionsEqualizer.classList.add("hidden");
         }
     }
+}
+
+// ==========================================================================
+// "THANK YOU" CITIZEN GRATITUDE DETECTION & AUTO-TICKET WRAP-UP
+// ==========================================================================
+async function checkThankYouAndFinalize(text) {
+    if (!text || isThankYouFinalizing || !isCallActive) return;
+
+    // Detect gratitude in English, Hindi (Devanagari & Romanized/Hinglish), and Urdu
+    const thankPattern = /\b(thank\s*you|thanks|thank\s*u|dhanyawad|dhanyavad|dhanyavaad|धन्यवाद|shukriya|शुक्रिया|bahut\s*dhanyawad|thankyou|thx)\b/i;
+    if (!thankPattern.test(text)) return;
+
+    isThankYouFinalizing = true;
+    console.log("Citizen expressed gratitude ('Thank you' detected). Initiating auto-ticket generation & session wrap-up...");
+
+    showToast("🙏 'Thank you' received! Auto-generating civic ticket & saving to 'My Tickets'...", "info", 4000);
+    addTranscriptMessage("system", "🙏 Citizen gratitude received ('Thank you'). Creating official civic ticket and wrapping up session...");
+
+    // 1. Extract context from callTranscripts
+    let userProblem = "Civic complaint reported in voice session.";
+    let detectedAddress = "Reported via SAHAYAK Voice Call";
+
+    for (let i = callTranscripts.length - 1; i >= 0; i--) {
+        const t = callTranscripts[i];
+        if (t.speaker === "user" && t.text) {
+            const clean = t.text.trim();
+            if (!thankPattern.test(clean) && clean.length > 4) {
+                userProblem = clean;
+                break;
+            }
+        }
+    }
+
+    if (userProblem === "Civic complaint reported in voice session." && text.length > 15) {
+        const stripped = text.replace(thankPattern, "").replace(/[!.,?]/g, "").trim();
+        if (stripped.length > 4) userProblem = stripped;
+    }
+
+    // 2. Identify Civic Category
+    const lower = (userProblem + " " + text).toLowerCase();
+    let category = "Municipal Civic Services";
+    if (lower.includes("kachra") || lower.includes("garbage") || lower.includes("waste") || lower.includes("safai") || lower.includes("dustbin")) {
+        category = "Waste & Sanitation";
+    } else if (lower.includes("light") || lower.includes("bijli") || lower.includes("andhera") || lower.includes("pole") || lower.includes("bulb")) {
+        category = "Street Lighting";
+    } else if (lower.includes("pothole") || lower.includes("gaddha") || lower.includes("road") || lower.includes("sadak") || lower.includes("khadda")) {
+        category = "Roads & Potholes";
+    } else if (lower.includes("paani") || lower.includes("water") || lower.includes("pipeline") || lower.includes("tanker") || lower.includes("leak") || lower.includes("jal")) {
+        category = "Water Supply";
+    } else if (lower.includes("wire") || lower.includes("spark") || lower.includes("gas") || lower.includes("112") || lower.includes("hazard") || lower.includes("fire") || lower.includes("aag")) {
+        category = "Urgent Public Safety";
+    }
+
+    // 3. Generate Official Ticket ID
+    const randomDigits = Math.floor(1000 + Math.random() * 9000);
+    const ticketId = `SHK-CIVIC-${randomDigits}`;
+
+    // 4. Persist Ticket via Backend API
+    try {
+        const ticketPayload = {
+            ticket_id: ticketId,
+            problem: userProblem,
+            category: category,
+            address: detectedAddress,
+            citizen_pin: getCitizenPin()
+        };
+
+        const res = await fetch("/v1/tickets", {
+            method: "POST",
+            headers: getAuthHeaders({ "Content-Type": "application/json" }),
+            body: JSON.stringify(ticketPayload)
+        });
+
+        if (res.ok) {
+            console.log("Successfully auto-persisted ticket on thank-you:", ticketId);
+            await loadTickets();
+            showToast(`🎫 Ticket #${ticketId} registered & saved in 'My Tickets'!`, "success", 5000);
+            addTranscriptMessage("system", `🎫 Ticket #${ticketId} successfully registered under category '${category}' and saved to 'My Tickets'.`);
+
+            // Update live captions with wrap-up confirmation
+            updateLiveCaptions("agent", `धन्यवाद! आपका टिकट #${ticketId} दर्ज कर लिया गया है। सहायक सत्र समाप्त किया जा रहा है।`, false, true, "हिन्दी");
+        }
+    } catch (err) {
+        console.warn("Could not auto-create ticket on thank you:", err);
+    }
+
+    // 5. Gracefully end session after 1.5s
+    setTimeout(async () => {
+        try {
+            if (isCallActive) {
+                console.log("Cutting session gracefully post thank-you...");
+                await endCall();
+                showToast("📞 Session concluded. Thank you for contacting SAHAYAK!", "info", 4000);
+
+                // Auto-switch to 'My Tickets' tab and highlight the new ticket
+                switchTab('tickets');
+                jumpToTicket(ticketId);
+
+                // Add newly-generated animation class to ticket card
+                setTimeout(() => {
+                    const card = document.getElementById(`ticket-card-${ticketId}`);
+                    if (card) {
+                        card.classList.add("newly-generated");
+                    }
+                }, 200);
+            }
+        } catch (endErr) {
+            console.warn("Error cutting session post thank-you:", endErr);
+        } finally {
+            isThankYouFinalizing = false;
+        }
+    }, 1600);
 }
 
 // ==========================================================================
@@ -1226,6 +1431,7 @@ function startWebSpeechRecognition() {
                 if (isFinal) {
                     upsertTranscriptTurn("user", activeText, Date.now(), true);
                     checkForCivicEmergency(activeText);
+                    checkThankYouAndFinalize(activeText);
                 }
             }
         };
@@ -1858,6 +2064,7 @@ async function simulatePrompt(text) {
     updateLiveCaptions("user", text, true, true);
     upsertTranscriptTurn("user", text, Date.now(), true);
     checkForCivicEmergency(text);
+    checkThankYouAndFinalize(text);
 
     if (isCallActive && rtmClient && currentSession) {
         try {

@@ -8,7 +8,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="/static/styles.css?v=2.6">
+    <link rel="stylesheet" href="/static/styles.css?v=2.7">
     <style>
         /* Critical modal safety - prevents any unstyled flash before full CSS loads */
         .modal-backdrop.hidden, .modal-backdrop[hidden], [hidden] { display: none !important; }
@@ -161,6 +161,7 @@
                     <button class="civic-chip chip-mr" onclick="simulatePrompt('Road par bahut bada pothole hai.')">🛣 Roads</button>
                     <button class="civic-chip chip-bl" onclick="simulatePrompt('Meri complaint ka status check karna hai.')">📋 Tickets</button>
                     <button class="civic-chip chip-br chip-urgent" onclick="simulatePrompt('Road par live electric wire gir gaya hai!')">⚠ 112</button>
+                    <button class="civic-chip chip-thank" style="position: absolute; bottom: 6px; left: 50%; transform: translateX(-50%); z-index: 12; background: rgba(124,109,250,0.2); border: 1px solid var(--accent); color: #fff;" onclick="simulatePrompt('Bahut bahut dhanyawad, thank you!')">🙏 Thank You</button>
 
                     <!-- The orb -->
                     <div class="orb-container" onclick="toggleCall()">
@@ -210,10 +211,13 @@
                     </div>
                     <div id="liveCaptionsContent" class="captions-body">
                         <div id="liveCaptionsStream" class="captions-stream">
-                            <div id="captionPreviousTurn" class="caption-turn-prev hidden"></div>
-                            <p id="liveCaptionsText" class="captions-text placeholder">
-                                Live captions will stream in real-time as you and SAHAYAK speak...
-                            </p>
+                            <div id="captionPreviousTurns" class="caption-turns-history"></div>
+                            <div class="captions-text-wrapper">
+                                <span id="liveCaptionsText" class="captions-text placeholder">
+                                    Live captions will stream in real-time as you and SAHAYAK speak...
+                                </span>
+                                <span id="captionCursor" class="caption-cursor hidden"></span>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -626,16 +630,20 @@
             <span class="floating-speaker-dot" id="floatingSpeakerDot"></span>
             <span id="floatingSpeakerName">🤖 SAHAYAK</span>
         </div>
-        <p id="floatingSubtitlesText" class="floating-subtitles-text">
-            Live captions will stream in real-time as you and SAHAYAK speak...
-        </p>
+        <div class="floating-subtitles-text-box">
+            <p id="floatingSubtitlesText" class="floating-subtitles-text">
+                Live captions will stream in real-time as you and SAHAYAK speak...
+            </p>
+        </div>
         <div class="floating-subtitles-actions">
-            <button class="floating-sub-btn" id="btnFloatingCopy" onclick="copyCurrentCaption()" title="Copy subtitle">📋</button>
+            <button class="floating-sub-btn" id="btnFloatingExpand" onclick="toggleFloatingExpand()" title="Toggle compact / multi-line expand">↕</button>
+            <button class="floating-sub-btn" id="btnFloatingFontSize" onclick="toggleCaptionFontSize()" title="Toggle accessibility text size">A±</button>
+            <button class="floating-sub-btn" id="btnFloatingCopy" onclick="copyCurrentCaption(this)" title="Copy subtitle">📋</button>
             <button class="floating-sub-btn" id="btnFloatingClose" onclick="toggleFloatingCaptions(false)" title="Hide floating CC">✕</button>
         </div>
     </div>
 </div>
 
-<script src="/static/app.js?v=3.1"></script>
+<script src="/static/app.js?v=3.2"></script>
 </body>
 </html>

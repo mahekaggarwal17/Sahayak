@@ -1,5 +1,40 @@
 [
   {
+    "id": "rec_1788694273_da900857",
+    "channel_name": "android-convoai-1788694267-565203",
+    "created_at_iso": "2026-09-06T11:31:13.229470+00:00",
+    "created_at_formatted": "Sep 06, 2026, 11:31 AM",
+    "timestamp_unix": 1788694273,
+    "duration_seconds": 3,
+    "audio_filename": "rec_1788694273_da900857.webm",
+    "audio_url": "/v1/recordings/rec_1788694273_da900857/audio",
+    "file_size_bytes": 0,
+    "category": "Water Supply & Connections",
+    "ticket_number": "SHK-CIVIC-5894",
+    "summary": "Water Supply & Connections: Mere ghar ke paas water pipeline leak ho rahi hai aur paani beh raha hai.",
+    "turns_count": 2,
+    "transcripts": [
+      {
+        "speaker": "user",
+        "text": "Mere ghar ke paas water pipeline leak ho rahi hai aur paani beh raha hai.",
+        "timestamp": "05:01 pm",
+        "turn_id": 1001,
+        "is_final": true
+      },
+      {
+        "speaker": "agent",
+        "text": "नमस्ते!मैं सहायक हूँ,",
+        "timestamp": "05:01 pm",
+        "turn_id": 1,
+        "is_final": false
+      }
+    ],
+    "agent_id": "A44CY33VE83EJ48LL33AW74WL36PN28T",
+    "caller_rtc_uid": "869180",
+    "citizen_pin": "SAH-6820",
+    "citizen_id": null
+  },
+  {
     "id": "rec_1788693873_7ca00d51",
     "channel_name": "android-convoai-1788693585-390339",
     "created_at_iso": "2026-09-06T11:24:33.772770+00:00",
