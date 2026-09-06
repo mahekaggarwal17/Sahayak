@@ -482,7 +482,7 @@ body {
 .orb-panel {
     display: flex;
     flex-direction: column;
-    gap: 20px;
+    gap: 28px;
     align-items: center;
 }
 
@@ -490,6 +490,8 @@ body {
     position: relative;
     width: 340px;
     height: 340px;
+    margin-top: 14px;
+    margin-bottom: 12px;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -524,12 +526,30 @@ body {
 .chip-urgent { color: var(--red); border-color: rgba(244,63,94,0.3); }
 .chip-urgent:hover { color: var(--red); border-color: rgba(244,63,94,0.6); background: var(--red-dim); box-shadow: 0 0 14px rgba(244,63,94,0.35); }
 
-.chip-tl { top: 24px;  left: 0px; }
-.chip-tr { top: 24px;  right: 0px; }
+.chip-tc { top: -8px; left: 50%; transform: translateX(-50%); }
+.chip-tc:hover { transform: translateX(-50%) scale(1.06); }
+.chip-tl { top: 22px;  left: 0px; }
+.chip-tr { top: 22px;  right: 0px; }
 .chip-ml { top: 50%;   left: -20px; transform: translateY(-50%); }
+.chip-ml:hover { transform: translateY(-50%) scale(1.06); }
 .chip-mr { top: 50%;   right: -20px; transform: translateY(-50%); }
-.chip-bl { bottom: 24px; left: 10px; }
-.chip-br { bottom: 24px; right: 10px; }
+.chip-mr:hover { transform: translateY(-50%) scale(1.06); }
+.chip-bl { bottom: 32px; left: 0px; }
+.chip-br { bottom: 32px; right: 0px; }
+
+.chip-thank {
+    background: rgba(124, 109, 250, 0.16);
+    border: 1px solid rgba(124, 109, 250, 0.45);
+    color: #f1f0ff;
+    z-index: 6;
+}
+
+.chip-thank:hover {
+    background: rgba(124, 109, 250, 0.32);
+    border-color: var(--accent);
+    color: #fff;
+    box-shadow: 0 0 16px rgba(124, 109, 250, 0.5);
+}
 
 /* Rotating Rings */
 .orb-container {
@@ -640,7 +660,7 @@ body {
 /* Orb status label */
 .orb-status {
     position: absolute;
-    bottom: -16px;
+    bottom: -18px;
     left: 50%;
     transform: translateX(-50%);
     white-space: nowrap;
@@ -651,6 +671,8 @@ body {
     font-size: 0.78rem;
     color: var(--t2);
     font-family: var(--font-mono);
+    pointer-events: none;
+    z-index: 4;
 }
 
 /* ─── EQUALIZER BARS ─────────────────────────────────────────── */
