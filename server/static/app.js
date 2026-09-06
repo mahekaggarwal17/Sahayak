@@ -604,26 +604,47 @@ async function startCall() {
 
         // 3. Join RTC Channel
         updateState("connecting", "Connecting audio stream...");
+        let joinedUid = sessionData.requester_rtc_uid;
         try {
-            await rtcClient.join(
+            // Attempt 1: Standard join with issued token & assigned numeric UID
+            joinedUid = await rtcClient.join(
                 sessionData.app_id,
                 sessionData.channel_name,
-                sessionData.rtc_token,
+                sessionData.rtc_token || null,
                 sessionData.requester_rtc_uid
             );
         } catch (tokenErr) {
-            console.warn("RTC Token authorization failed, attempting fallback connection...", tokenErr);
+            console.warn("RTC Token join with specific UID failed, trying auto-allocated UID...", tokenErr);
             try {
-                await rtcClient.join(
+                // Attempt 2: Join with token & auto-allocated UID (null)
+                joinedUid = await rtcClient.join(
                     sessionData.app_id,
                     sessionData.channel_name,
-                    null,
-                    sessionData.requester_rtc_uid
+                    sessionData.rtc_token || null,
+                    null
                 );
-            } catch (fallbackErr) {
-                console.error("Join failed:", fallbackErr);
-                throw new Error("Agora RTC token authorization failed. Please verify AGORA_APP_CERTIFICATE in server configuration.");
+            } catch (autoUidErr) {
+                console.warn("RTC Token join failed, attempting Testing-Mode connection (no token)...", autoUidErr);
+                try {
+                    // Attempt 3: No-token fallback for App-ID-only projects
+                    joinedUid = await rtcClient.join(
+                        sessionData.app_id,
+                        sessionData.channel_name,
+                        null,
+                        sessionData.requester_rtc_uid
+                    );
+                } catch (fallbackErr) {
+                    console.error("Agora RTC connection failed:", { tokenErr, autoUidErr, fallbackErr });
+                    const code = tokenErr.code || autoUidErr.code || fallbackErr.code || "";
+                    const reason = tokenErr.message || autoUidErr.message || fallbackErr.message || "Authorization failed";
+                    throw new Error(`Agora audio connection failed (${code ? code + ': ' : ''}${reason}). Please check AGORA_APP_CERTIFICATE or network.`);
+                }
             }
+        }
+        if (joinedUid && joinedUid !== sessionData.requester_rtc_uid) {
+            console.log(`Agora allocated UID ${joinedUid} (requested: ${sessionData.requester_rtc_uid})`);
+            sessionData.requester_rtc_uid = joinedUid;
+            if (metricUid) metricUid.textContent = joinedUid;
         }
 
         // 4. Create and publish microphone audio track with resilient multi-profile fallback

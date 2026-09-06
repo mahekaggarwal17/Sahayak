@@ -6,7 +6,7 @@ from typing import Any
 
 import httpx
 from agora_agent import Agent, Area, AsyncAgora, DeepgramSTT, MiniMaxTTS, OpenAI
-from agora_agent.agentkit import generate_convo_ai_token
+from agora_agent.agentkit import generate_convo_ai_token, generate_rtc_token
 from agora_agent.core.api_error import ApiError
 
 from .config import Settings
@@ -56,7 +56,29 @@ class AgoraClient:
         self._sessions: dict[str, tuple[str, Any]] = {}
 
     def create_user_tokens(self, channel_name: str, rtc_uid: int) -> tuple[str, str, int]:
-        token = generate_convo_ai_token(
+        if not self.settings.agora_app_certificate:
+            # If certificate is not configured, return empty tokens for testing mode
+            expires_at = int(time.time()) + self.settings.token_expiry_seconds
+            return "", "", expires_at
+
+        try:
+            rtc_token = generate_rtc_token(
+                app_id=self.settings.agora_app_id,
+                app_certificate=self.settings.agora_app_certificate,
+                channel=channel_name,
+                uid=rtc_uid,
+                expiry_seconds=self.settings.token_expiry_seconds,
+            )
+        except Exception:
+            rtc_token = generate_convo_ai_token(
+                app_id=self.settings.agora_app_id,
+                app_certificate=self.settings.agora_app_certificate,
+                channel_name=channel_name,
+                uid=rtc_uid,
+                token_expire=self.settings.token_expiry_seconds,
+            )
+
+        rtm_token = generate_convo_ai_token(
             app_id=self.settings.agora_app_id,
             app_certificate=self.settings.agora_app_certificate,
             channel_name=channel_name,
@@ -64,7 +86,7 @@ class AgoraClient:
             token_expire=self.settings.token_expiry_seconds,
         )
         expires_at = int(time.time()) + self.settings.token_expiry_seconds
-        return token, token, expires_at
+        return rtc_token, rtm_token, expires_at
 
     def _build_agent(self, system_prompt: str | None = None) -> Agent:
         return (
