@@ -540,73 +540,77 @@ async function startCall() {
 
         addTranscriptMessage("system", `Session initialized on channel: ${sessionData.channel_name}`);
 
-        // 2. Initialize Agora RTC Client
-        rtcClient = AgoraRTC.createClient({ mode: "rtc", codec: "vp8" });
+        // 2. Initialize Agora RTC Client setup function
+        function setupRtcClient() {
+            const client = AgoraRTC.createClient({ mode: "rtc", codec: "vp8" });
 
-        // Subscribe to remote audio (SAHAYAK Agent)
-        rtcClient.on("user-published", async (user, mediaType) => {
-            if (mediaType === "audio") {
-                await rtcClient.subscribe(user, mediaType);
-                remoteAudioTrack = user.audioTrack;
-                remoteAudioTrack.play();
-                updateState("speaking", "SAHAYAK is speaking...");
+            client.on("user-published", async (user, mediaType) => {
+                if (mediaType === "audio") {
+                    await client.subscribe(user, mediaType);
+                    remoteAudioTrack = user.audioTrack;
+                    remoteAudioTrack.play();
+                    updateState("speaking", "SAHAYAK is speaking...");
 
-                // Initialize Dual-Stream Recording once remote audio arrives
-                if (localAudioTrack && remoteAudioTrack) {
-                    initDualStreamRecording(localAudioTrack, remoteAudioTrack);
-                }
-            }
-        });
-
-        rtcClient.on("user-unpublished", (user, mediaType) => {
-            if (mediaType === "audio") {
-                remoteAudioTrack = null;
-                updateState("active", "Listening to your voice...");
-                setEqualizerActive(false);
-            }
-        });
-
-        // Audio volume indicator for animated reactive orb
-        AgoraRTC.enableLogUpload();
-        rtcClient.enableAudioVolumeIndicator();
-        rtcClient.on("volume-indicator", (volumes) => {
-            let maxLevel = 0;
-            let isAgentSpeaking = false;
-
-            volumes.forEach((vol) => {
-                if (vol.level > maxLevel) maxLevel = vol.level;
-                if (vol.uid == sessionData.agent_rtc_uid && vol.level > 5) {
-                    isAgentSpeaking = true;
+                    // Initialize Dual-Stream Recording once remote audio arrives
+                    if (localAudioTrack && remoteAudioTrack) {
+                        initDualStreamRecording(localAudioTrack, remoteAudioTrack);
+                    }
                 }
             });
 
-            if (isAgentSpeaking) {
-                voiceOrb.className = "voice-orb speaking";
-                agentStateLabel.textContent = "SAHAYAK is speaking...";
-                audioWaveform.classList.remove("hidden");
-                setEqualizerActive(true);
-                const ld = document.getElementById('liveDot');
-                if (ld) { ld.classList.add('active'); }
-            } else if (maxLevel > 5) {
-                voiceOrb.className = "voice-orb listening";
-                agentStateLabel.textContent = "Listening...";
-                audioWaveform.classList.remove("hidden");
-                setEqualizerActive(false);
-            } else if (isCallActive) {
-                voiceOrb.className = "voice-orb idle";
-                agentStateLabel.textContent = "Connected — speak with SAHAYAK";
-                audioWaveform.classList.add("hidden");
-                setEqualizerActive(false);
-                const ld = document.getElementById('liveDot');
-                if (ld) { ld.classList.remove('active'); }
-            }
-        });
+            client.on("user-unpublished", (user, mediaType) => {
+                if (mediaType === "audio") {
+                    remoteAudioTrack = null;
+                    updateState("active", "Listening to your voice...");
+                    setEqualizerActive(false);
+                }
+            });
 
-        // 3. Join RTC Channel
+            // Audio volume indicator for animated reactive orb
+            AgoraRTC.enableLogUpload();
+            client.enableAudioVolumeIndicator();
+            client.on("volume-indicator", (volumes) => {
+                let maxLevel = 0;
+                let isAgentSpeaking = false;
+
+                volumes.forEach((vol) => {
+                    if (vol.level > maxLevel) maxLevel = vol.level;
+                    if (vol.uid == sessionData.agent_rtc_uid && vol.level > 5) {
+                        isAgentSpeaking = true;
+                    }
+                });
+
+                if (isAgentSpeaking) {
+                    voiceOrb.className = "voice-orb speaking";
+                    agentStateLabel.textContent = "SAHAYAK is speaking...";
+                    audioWaveform.classList.remove("hidden");
+                    setEqualizerActive(true);
+                    const ld = document.getElementById('liveDot');
+                    if (ld) { ld.classList.add('active'); }
+                } else if (maxLevel > 5) {
+                    voiceOrb.className = "voice-orb listening";
+                    agentStateLabel.textContent = "Listening...";
+                    audioWaveform.classList.remove("hidden");
+                    setEqualizerActive(false);
+                } else if (isCallActive) {
+                    voiceOrb.className = "voice-orb idle";
+                    agentStateLabel.textContent = "Connected — speak with SAHAYAK";
+                    audioWaveform.classList.add("hidden");
+                    setEqualizerActive(false);
+                    const ld = document.getElementById('liveDot');
+                    if (ld) { ld.classList.remove('active'); }
+                }
+            });
+
+            return client;
+        }
+
+        // 3. Join RTC Channel with automatic client resilience
         updateState("connecting", "Connecting audio stream...");
+        rtcClient = setupRtcClient();
         let joinedUid = sessionData.requester_rtc_uid;
         try {
-            // Attempt 1: Standard join with issued token & assigned numeric UID
+            // Attempt 1: Standard join with issued AccessToken2 & assigned UID
             joinedUid = await rtcClient.join(
                 sessionData.app_id,
                 sessionData.channel_name,
@@ -614,31 +618,22 @@ async function startCall() {
                 sessionData.requester_rtc_uid
             );
         } catch (tokenErr) {
-            console.warn("RTC Token join with specific UID failed, trying auto-allocated UID...", tokenErr);
+            console.warn("RTC Token join with specific UID encountered error, trying fallback...", tokenErr);
+            try { await rtcClient.leave(); } catch (e) {}
+            rtcClient = setupRtcClient();
             try {
-                // Attempt 2: Join with token & auto-allocated UID (null)
+                // Attempt 2: Testing-mode fallback without token (for App-ID-only projects)
                 joinedUid = await rtcClient.join(
                     sessionData.app_id,
                     sessionData.channel_name,
-                    sessionData.rtc_token || null,
-                    null
+                    null,
+                    sessionData.requester_rtc_uid
                 );
-            } catch (autoUidErr) {
-                console.warn("RTC Token join failed, attempting Testing-Mode connection (no token)...", autoUidErr);
-                try {
-                    // Attempt 3: No-token fallback for App-ID-only projects
-                    joinedUid = await rtcClient.join(
-                        sessionData.app_id,
-                        sessionData.channel_name,
-                        null,
-                        sessionData.requester_rtc_uid
-                    );
-                } catch (fallbackErr) {
-                    console.error("Agora RTC connection failed:", { tokenErr, autoUidErr, fallbackErr });
-                    const code = tokenErr.code || autoUidErr.code || fallbackErr.code || "";
-                    const reason = tokenErr.message || autoUidErr.message || fallbackErr.message || "Authorization failed";
-                    throw new Error(`Agora audio connection failed (${code ? code + ': ' : ''}${reason}). Please check AGORA_APP_CERTIFICATE or network.`);
-                }
+            } catch (fallbackErr) {
+                console.error("Agora RTC connection failed:", { tokenErr, fallbackErr });
+                const code = tokenErr.code || fallbackErr.code || "";
+                const reason = tokenErr.message || fallbackErr.message || "Authorization failed";
+                throw new Error(`Agora audio connection failed (${code ? code + ': ' : ''}${reason}). Please check AGORA_APP_CERTIFICATE or network.`);
             }
         }
         if (joinedUid && joinedUid !== sessionData.requester_rtc_uid) {
