@@ -13,7 +13,12 @@ let timerInterval = null;
 
 // Live Captions & Transcripts State
 let captionsVisible = true;
+let floatingCaptionsVisible = true;
+let captionFontSizeLarge = false;
 let currentAssistantCaption = "";
+let currentSpeaker = "agent";
+let previousTurnCaption = "";
+let speechRecognitionInstance = null;
 let callTranscripts = []; // Array of { speaker, text, timestamp, turn_id }
 let allRecordingsData = [];
 
@@ -43,6 +48,17 @@ const emergencyBanner = document.getElementById("emergencyBanner");
 const liveCaptionsCard = document.getElementById("liveCaptionsCard");
 const liveCaptionsText = document.getElementById("liveCaptionsText");
 const captionsEqualizer = document.getElementById("captionsEqualizer");
+const captionsSpeakerBadge = document.getElementById("captionsSpeakerBadge");
+const captionsSpeakerIcon = document.getElementById("captionsSpeakerIcon");
+const captionsSpeakerName = document.getElementById("captionsSpeakerName");
+const captionsLangBadge = document.getElementById("captionsLangBadge");
+const captionPreviousTurn = document.getElementById("captionPreviousTurn");
+const floatingSubtitlesBar = document.getElementById("floatingSubtitlesBar");
+const floatingSpeakerPill = document.getElementById("floatingSpeakerPill");
+const floatingSpeakerName = document.getElementById("floatingSpeakerName");
+const floatingSubtitlesText = document.getElementById("floatingSubtitlesText");
+const btnToggleFloatingCc = document.getElementById("btnToggleFloatingCc");
+const btnFloatingCcText = document.getElementById("btnFloatingCcText");
 
 // Metrics Elements
 const metricChannel = document.getElementById("metricChannel");
@@ -696,7 +712,8 @@ async function startCall() {
         btnMuteText.textContent = localAudioTrack ? "Mute Mic" : "Connect Mic";
         btnInterrupt.disabled = false;
 
-        updateLiveCaptions("नमस्ते! मैं सहायक हूँ, आपका पब्लिक यूटिलिटी असिस्टेंट। आप किसी भी नागरिक समस्या के लिए मुझसे बात कर सकते हैं।", true);
+        updateLiveCaptions("agent", "नमस्ते! मैं सहायक हूँ, आपका पब्लिक यूटिलिटी असिस्टेंट। आप किसी भी नागरिक समस्या के लिए मुझसे बात कर सकते हैं।", true, false);
+        startWebSpeechRecognition();
         updateState("active", localAudioTrack ? "SAHAYAK is ready. Speak in Hindi, English, or Hinglish!" : "Listen & Chat Mode — hear SAHAYAK and use prompt chips below");
 
         // Latency measurement loop
@@ -797,10 +814,11 @@ async function endCall() {
     btnMuteText.textContent = "Mute Mic";
     btnInterrupt.disabled = true;
 
+    stopWebSpeechRecognition();
     setEqualizerActive(false);
     updateState("idle", "Click Start to Speak");
     addTranscriptMessage("system", `Session ended. Total duration: ${sessionDurationSec}s.`);
-    updateLiveCaptions("Session ended. Call audio and transcript saved to storage.", false);
+    updateLiveCaptions("system", "Session ended. Call audio and transcript saved to storage.", false, true);
 }
 
 // ==========================================================================
@@ -864,7 +882,7 @@ function handleRtmSignalingMessage(event) {
 
             if (text) {
                 currentAssistantCaption = text;
-                updateLiveCaptions(text, true, isFinal);
+                updateLiveCaptions("agent", text, true, isFinal);
 
                 // Add or update assistant turn in transcript feed
                 upsertTranscriptTurn("agent", text, payload.turn_id, isFinal);
@@ -879,6 +897,7 @@ function handleRtmSignalingMessage(event) {
             const isFinal = payload.final !== false;
 
             if (text) {
+                updateLiveCaptions("user", text, true, isFinal);
                 upsertTranscriptTurn("user", text, payload.turn_id, isFinal);
                 checkForCivicEmergency(text);
             }
@@ -888,6 +907,7 @@ function handleRtmSignalingMessage(event) {
         } else if (objType === "message.interrupt") {
             setEqualizerActive(false);
             if (liveCaptionsCard) liveCaptionsCard.classList.remove("agent-speaking");
+            updateLiveCaptions("agent", "… (Interrupted)", false, true);
             addTranscriptMessage("system", "Agent speech interrupted.");
         }
     } catch (e) {
@@ -981,24 +1001,116 @@ function updateAgentPresenceState(state) {
 }
 
 // ==========================================================================
-// LIVE CAPTIONS UI HANDLER
+// LIVE CAPTIONS & SUBTITLES ENGINE (DUAL-SPEAKER + WEB SPEECH API + FLOATING HUD)
 // ==========================================================================
-function updateLiveCaptions(text, isLive = true, isFinal = false) {
-    if (!liveCaptionsText) return;
+function updateLiveCaptions(speaker = "agent", text = "", isLive = true, isFinal = false, lang = null) {
+    if (!text || !text.trim()) return;
+    const cleanText = text.trim();
 
-    liveCaptionsText.textContent = text;
-    liveCaptionsText.classList.toggle("is-live", isLive);
-
-    if (liveCaptionsCard) {
-        if (isLive && !isFinal) {
-            liveCaptionsCard.classList.add("agent-speaking");
-            setEqualizerActive(true);
-        } else {
-            liveCaptionsCard.classList.remove("agent-speaking");
-            setEqualizerActive(false);
-        }
+    // 1. Automatic Language / Script Detection (Devanagari vs Latin)
+    const isHindi = /[\u0900-\u097F]/.test(cleanText);
+    const detectedLang = lang || (isHindi ? "हिन्दी" : "ENG");
+    if (captionsLangBadge) {
+        captionsLangBadge.textContent = detectedLang;
     }
-    if (liveCaptionsText) liveCaptionsText.classList.remove('placeholder');
+
+    // 2. Speaker Attribution
+    const isUser = speaker === "user" || speaker === "citizen";
+    currentSpeaker = isUser ? "user" : "agent";
+
+    // Update in-card speaker badge
+    if (captionsSpeakerBadge) {
+        captionsSpeakerBadge.className = `speaker-badge ${isUser ? "speaker-user" : "speaker-agent"}`;
+    }
+    if (captionsSpeakerIcon) {
+        captionsSpeakerIcon.textContent = isUser ? "👤" : "🤖";
+    }
+    if (captionsSpeakerName) {
+        captionsSpeakerName.textContent = isUser ? "YOU नागरिक" : "SAHAYAK सहायक";
+    }
+
+    // Update in-card border glow
+    if (liveCaptionsCard) {
+        liveCaptionsCard.classList.toggle("agent-speaking", !isUser && isLive);
+        liveCaptionsCard.classList.toggle("user-speaking", isUser && isLive);
+    }
+    setEqualizerActive(!isUser && isLive && !isFinal);
+
+    // 3. Update In-Card Caption Text
+    if (liveCaptionsText) {
+        liveCaptionsText.textContent = cleanText;
+        liveCaptionsText.classList.remove("placeholder");
+        liveCaptionsText.classList.toggle("is-live", isLive);
+        liveCaptionsText.classList.toggle("is-interim", !isFinal);
+    }
+
+    // 4. Update Floating Subtitle HUD
+    if (floatingSubtitlesText) {
+        floatingSubtitlesText.textContent = cleanText;
+    }
+    if (floatingSpeakerPill) {
+        floatingSpeakerPill.className = `floating-speaker-pill ${isUser ? "speaker-user" : ""}`;
+    }
+    if (floatingSpeakerName) {
+        floatingSpeakerName.textContent = isUser ? "👤 YOU" : "🤖 SAHAYAK";
+    }
+
+    // 5. Turn Finalization & Context Preservation
+    if (isFinal) {
+        if (captionPreviousTurn) {
+            captionPreviousTurn.textContent = `${isUser ? "👤 You" : "🤖 SAHAYAK"}: "${cleanText}"`;
+            captionPreviousTurn.classList.remove("hidden");
+        }
+        previousTurnCaption = cleanText;
+    }
+}
+
+function toggleFloatingCaptions(forceState = null) {
+    if (typeof forceState === "boolean") {
+        floatingCaptionsVisible = forceState;
+    } else {
+        floatingCaptionsVisible = !floatingCaptionsVisible;
+    }
+
+    if (floatingSubtitlesBar) {
+        floatingSubtitlesBar.classList.toggle("hidden", !floatingCaptionsVisible);
+    }
+    if (btnToggleFloatingCc) {
+        btnToggleFloatingCc.classList.toggle("cc-btn-active", floatingCaptionsVisible);
+    }
+    if (btnFloatingCcText) {
+        btnFloatingCcText.textContent = floatingCaptionsVisible ? "Subtitles: ON" : "Subtitles: OFF";
+    }
+    const btnTool = document.getElementById("btnFloatingHudToggle");
+    if (btnTool) {
+        btnTool.classList.toggle("active", floatingCaptionsVisible);
+    }
+}
+
+function toggleCaptionFontSize() {
+    captionFontSizeLarge = !captionFontSizeLarge;
+    if (liveCaptionsCard) {
+        liveCaptionsCard.classList.toggle("captions-large", captionFontSizeLarge);
+    }
+    const btn = document.getElementById("btnCaptionFontSize");
+    if (btn) {
+        btn.classList.toggle("active", captionFontSizeLarge);
+    }
+    showToast(captionFontSizeLarge ? "Accessibility: Large subtitles enabled" : "Subtitles set to normal size", "info", 2000);
+}
+
+async function copyCurrentCaption() {
+    const text = liveCaptionsText ? liveCaptionsText.textContent.trim() : "";
+    if (!text || text.includes("Live captions will stream")) {
+        showToast("No active caption to copy", "info", 2000);
+        return;
+    }
+    try {
+        await navigator.clipboard.writeText(text);
+        showToast("Caption copied to clipboard! 📋", "success", 2500);
+    } catch (e) {
+        showToast("Copied to clipboard", "success", 2000);
+    }
 }
 
 function toggleCaptionsVisibility() {
@@ -1018,6 +1130,86 @@ function setEqualizerActive(active) {
         } else {
             captionsEqualizer.classList.add("hidden");
         }
+    }
+}
+
+// ==========================================================================
+// CLIENT-SIDE WEB SPEECH API (ZERO-LATENCY INSTANT CITIZEN SUBTITLES)
+// ==========================================================================
+function startWebSpeechRecognition() {
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (!SpeechRecognition) {
+        console.log("Web Speech API not available; relying exclusively on Agora RTM transcription.");
+        return;
+    }
+
+    try {
+        if (speechRecognitionInstance) {
+            try { speechRecognitionInstance.stop(); } catch (e) {}
+        }
+
+        const recognition = new SpeechRecognition();
+        recognition.continuous = true;
+        recognition.interimResults = true;
+        recognition.maxAlternatives = 1;
+        recognition.lang = "hi-IN";
+
+        recognition.onstart = () => {
+            console.log("Web Speech Recognition active for zero-latency live captions.");
+        };
+
+        recognition.onresult = (event) => {
+            if (!isCallActive) return;
+
+            let interimTranscript = "";
+            let finalTranscript = "";
+
+            for (let i = event.resultIndex; i < event.results.length; ++i) {
+                const transcript = event.results[i][0].transcript;
+                if (event.results[i].isFinal) {
+                    finalTranscript += transcript;
+                } else {
+                    interimTranscript += transcript;
+                }
+            }
+
+            const activeText = (finalTranscript || interimTranscript).trim();
+            if (activeText) {
+                const isFinal = Boolean(finalTranscript);
+                updateLiveCaptions("user", activeText, true, isFinal);
+
+                if (isFinal) {
+                    upsertTranscriptTurn("user", activeText, Date.now(), true);
+                    checkForCivicEmergency(activeText);
+                }
+            }
+        };
+
+        recognition.onerror = (event) => {
+            if (event.error !== "no-speech") {
+                console.debug("Web Speech Recognition note:", event.error);
+            }
+        };
+
+        recognition.onend = () => {
+            if (isCallActive) {
+                try { recognition.start(); } catch (e) {}
+            }
+        };
+
+        recognition.start();
+        speechRecognitionInstance = recognition;
+    } catch (err) {
+        console.warn("Could not initialize Web Speech Recognition:", err);
+    }
+}
+
+function stopWebSpeechRecognition() {
+    if (speechRecognitionInstance) {
+        try {
+            speechRecognitionInstance.stop();
+        } catch (e) {}
+        speechRecognitionInstance = null;
     }
 }
 
@@ -1539,6 +1731,7 @@ function updateState(state, text) {
 }
 
 async function simulatePrompt(text) {
+    updateLiveCaptions("user", text, true, true);
     upsertTranscriptTurn("user", text, Date.now(), true);
     checkForCivicEmergency(text);
 

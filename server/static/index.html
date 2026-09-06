@@ -141,6 +141,10 @@
                         <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/></svg>
                         Interrupt
                     </button>
+                    <button id="btnToggleFloatingCc" class="btn-ghost cc-btn-active" onclick="toggleFloatingCaptions()" title="Toggle Floating Subtitles HUD">
+                        <span class="cc-badge-chip">CC</span>
+                        <span id="btnFloatingCcText">Subtitles: ON</span>
+                    </button>
                 </div>
             </div>
 
@@ -181,21 +185,33 @@
                             <span class="cc-chip">CC</span>
                             <span class="live-indicator">
                                 <span class="live-dot" id="liveDot"></span>
-                                LIVE CAPTIONS
+                                LIVE
                             </span>
-                            <span class="speaking-for">· SAHAYAK सहायक</span>
+                            <span id="captionsSpeakerBadge" class="speaker-badge speaker-agent">
+                                <span id="captionsSpeakerIcon">🤖</span>
+                                <span id="captionsSpeakerName">SAHAYAK सहायक</span>
+                            </span>
+                            <span id="captionsLangBadge" class="captions-lang-chip">AUTO</span>
                         </div>
                         <div class="captions-right">
                             <div id="captionsEqualizer" class="eq-bars small hidden">
                                 <span></span><span></span><span></span><span></span>
                             </div>
-                            <button class="cc-toggle-btn" id="btnToggleCaptions" onclick="toggleCaptionsVisibility()">Hide</button>
+                            <div class="captions-tools">
+                                <button class="cc-tool-btn" id="btnCaptionFontSize" onclick="toggleCaptionFontSize()" title="Toggle large text for accessibility">A±</button>
+                                <button class="cc-tool-btn" id="btnCopyCaption" onclick="copyCurrentCaption()" title="Copy current subtitle">📋</button>
+                                <button class="cc-tool-btn" id="btnFloatingHudToggle" onclick="toggleFloatingCaptions()" title="Toggle Floating Subtitles HUD">⤢</button>
+                                <button class="cc-toggle-btn" id="btnToggleCaptions" onclick="toggleCaptionsVisibility()">Hide</button>
+                            </div>
                         </div>
                     </div>
                     <div id="liveCaptionsContent" class="captions-body">
-                        <p id="liveCaptionsText" class="captions-text placeholder">
-                            Live captions will appear here as SAHAYAK speaks...
-                        </p>
+                        <div id="liveCaptionsStream" class="captions-stream">
+                            <div id="captionPreviousTurn" class="caption-turn-prev hidden"></div>
+                            <p id="liveCaptionsText" class="captions-text placeholder">
+                                Live captions will stream in real-time as you and SAHAYAK speak...
+                            </p>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -600,6 +616,23 @@
     </div>
 </div>
 
-<script src="/static/app.js?v=2.8"></script>
+<!-- Persistent Floating Subtitle HUD (YouTube/Google Meet CC style) -->
+<div id="floatingSubtitlesBar" class="floating-subtitles-bar">
+    <div class="floating-subtitles-inner">
+        <div class="floating-speaker-pill" id="floatingSpeakerPill">
+            <span class="floating-speaker-dot" id="floatingSpeakerDot"></span>
+            <span id="floatingSpeakerName">🤖 SAHAYAK</span>
+        </div>
+        <p id="floatingSubtitlesText" class="floating-subtitles-text">
+            Live captions will stream in real-time as you and SAHAYAK speak...
+        </p>
+        <div class="floating-subtitles-actions">
+            <button class="floating-sub-btn" id="btnFloatingCopy" onclick="copyCurrentCaption()" title="Copy subtitle">📋</button>
+            <button class="floating-sub-btn" id="btnFloatingClose" onclick="toggleFloatingCaptions(false)" title="Hide floating CC">✕</button>
+        </div>
+    </div>
+</div>
+
+<script src="/static/app.js?v=3.0"></script>
 </body>
 </html>
