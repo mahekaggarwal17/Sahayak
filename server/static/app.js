@@ -608,14 +608,15 @@ async function startCall() {
         // 3. Join RTC Channel with automatic client resilience
         updateState("connecting", "Connecting audio stream...");
         rtcClient = setupRtcClient();
-        let joinedUid = sessionData.requester_rtc_uid;
+        const numericUid = Number(sessionData.requester_rtc_uid) || sessionData.requester_rtc_uid;
+        let joinedUid = numericUid;
         try {
-            // Attempt 1: Standard join with issued AccessToken2 & assigned UID
+            // Attempt 1: Standard join with issued RTC token & assigned UID
             joinedUid = await rtcClient.join(
                 sessionData.app_id,
                 sessionData.channel_name,
                 sessionData.rtc_token || null,
-                sessionData.requester_rtc_uid
+                numericUid
             );
         } catch (tokenErr) {
             console.warn("RTC Token join with specific UID encountered error, trying fallback...", tokenErr);
@@ -627,7 +628,7 @@ async function startCall() {
                     sessionData.app_id,
                     sessionData.channel_name,
                     null,
-                    sessionData.requester_rtc_uid
+                    numericUid
                 );
             } catch (fallbackErr) {
                 console.error("Agora RTC connection failed:", { tokenErr, fallbackErr });
@@ -813,9 +814,8 @@ async function connectAgoraRTM(sessionData) {
 
     try {
         const { RTM } = AgoraRTM;
-        rtmClient = new RTM(sessionData.app_id, sessionData.requester_rtm_user_id, {
-            token: sessionData.rtm_token
-        });
+        const rtmUserId = String(sessionData.requester_rtm_user_id || sessionData.requester_rtc_uid);
+        rtmClient = new RTM(sessionData.app_id, rtmUserId);
 
         // Event: Incoming signaling message
         rtmClient.addEventListener("message", (event) => {
@@ -830,7 +830,11 @@ async function connectAgoraRTM(sessionData) {
             }
         });
 
-        await rtmClient.login();
+        if (sessionData.rtm_token) {
+            await rtmClient.login({ token: sessionData.rtm_token });
+        } else {
+            await rtmClient.login();
+        }
         await rtmClient.subscribe(sessionData.channel_name, {
             withMessage: true,
             withPresence: true
